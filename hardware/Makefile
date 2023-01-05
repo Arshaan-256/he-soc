@@ -216,10 +216,10 @@ benderrun: libbender $(util) $(library)
 	vsim -c -do 'source $(compile_script); quit'
 	touch $(library)/.build-srcs
 
-bendertb: benderrun $(dpi)
+bendertb: benderrun 
 	touch $(library)/.build-tb
 
-build: bendertb 	$(dpi-library)/ariane_dpi.so
+build: bendertb 	
 	vopt $(compile_flag) -suppress 3053 -suppress 8885 -work $(library)  $(top_level) -o $(top_level)_optimized +acc -check_synthesis
 
 

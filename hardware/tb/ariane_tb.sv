@@ -363,7 +363,7 @@ module ariane_tb;
   assign s_jtag_TDO_data      = s_jtag2alsaqr_tdo       ;
   assign s_tdo                = s_jtag2alsaqr_tdo       ;
   
-  if (~jtag_enable[0] & !LOCAL_JTAG) begin
+  /*if (~jtag_enable[0] & !LOCAL_JTAG) begin
     SimDTM i_SimDTM (
       .clk                  ( clk_i                 ),
       .reset                ( ~rst_DTM              ),
@@ -378,15 +378,15 @@ module ariane_tb;
       .debug_resp_bits_data ( s_dmi_resp_bits_data  ), 
       .exit                 ( s_dmi_exit            )
     );
-  end else begin
+  end else begin*/
     assign dmi_req_valid = '0;
     assign debug_req_bits_op = '0;
     assign dmi_exit = 1'b0;
-  end   
+  //end   
    
   // SiFive's SimJTAG Module
   // Converts to DPI calls
-  SimJTAG i_SimJTAG (
+  /*SimJTAG i_SimJTAG (
     .clock                ( clk_i                ),
     .reset                ( ~rst_ni              ),
     .enable               ( jtag_enable[0]       ),
@@ -398,7 +398,7 @@ module ariane_tb;
     .jtag_TDO_data        ( s_jtag_TDO_data      ),
     .jtag_TDO_driven      ( s_jtag_TDO_driven    ),
     .exit                 ( s_jtag_exit          )
-  );
+  );*/
   
     al_saqr 
     `ifndef TARGET_TOP_POST_SYNTH_SIM #(

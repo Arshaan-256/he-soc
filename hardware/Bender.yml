@@ -1,3 +1,4 @@
+
 package:
   name: ariane-soc
   authors:
@@ -142,8 +143,6 @@ sources:
   - target: test
     files:
       - tb/common/uart.sv                                                     
-      - tb/common/SimDTM.sv                                                   
-      - tb/common/SimJTAG.sv
       - ../bootrom/bootrom.sv
       - tb/common/jtag_pkg.sv
       - tb/common/jtag_intf.sv
