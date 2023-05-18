@@ -15,6 +15,7 @@
 
 `include "axi/assign.svh"
 `include "axi/typedef.svh"
+`define PMU_BLOCK
 
 module axi_lite_subsystem
   import ariane_soc::IdWidthSlave;
@@ -35,29 +36,35 @@ module axi_lite_subsystem
     AXI_LITE.Master  c2h_tlb_cfg_master,
     AXI_LITE.Master  llc_cfg_master,
 
+`ifdef PMU_BLOCK
+    AXI_LITE.Master  pmu_cfg_master,
+`endif
+
     output logic     h2c_irq_o,
     output logic     c2h_irq_o
 );
 
-   logic             s_c2h_irq;
+  logic             s_c2h_irq;
    
-   ariane_axi_soc::req_lite_t llc_cfg_req,     
-                              h2c_tlb_cfg_req, 
-                              c2h_tlb_cfg_req, 
-                              host_lite_req,   
-                              cluster_lite_req,
-                              h2cmailbox_lite_req,
-                              c2hmailbox_lite_req;
-     
-   ariane_axi_soc::resp_lite_t llc_cfg_resp,     
-                               h2c_tlb_cfg_resp, 
-                               c2h_tlb_cfg_resp, 
-                               host_lite_resp,   
-                               cluster_lite_resp,
-                               h2cmailbox_lite_resp,
-                               c2hmailbox_lite_resp;
-   
+  ariane_axi_soc::req_lite_t llc_cfg_req,     
+                            h2c_tlb_cfg_req, 
+                            c2h_tlb_cfg_req, 
+                            host_lite_req,   
+                            cluster_lite_req,                              
+                            h2cmailbox_lite_req,
+                            c2hmailbox_lite_req;                           
+    
+  ariane_axi_soc::resp_lite_t llc_cfg_resp,     
+                              h2c_tlb_cfg_resp, 
+                              c2h_tlb_cfg_resp, 
+                              host_lite_resp,   
+                              cluster_lite_resp,                        
+                              h2cmailbox_lite_resp,
+                              c2hmailbox_lite_resp;
 
+  ariane_axi_soc::req_lite_t  pmu_cfg_req;  
+  ariane_axi_soc::resp_lite_t pmu_cfg_resp;
+   
   AXI_LITE #(
     .AXI_ADDR_WIDTH (AXI_LITE_ADDR_WIDTH),
     .AXI_DATA_WIDTH (AXI_LITE_DATA_WIDTH)
@@ -153,14 +160,19 @@ module axi_lite_subsystem
 
   `AXI_LITE_ASSIGN_FROM_REQ ( llc_cfg_master , llc_cfg_req  )
   `AXI_LITE_ASSIGN_TO_RESP  ( llc_cfg_resp , llc_cfg_master )
-   
+
+`ifdef PMU_BLOCK
+  `AXI_LITE_ASSIGN_FROM_REQ ( pmu_cfg_master , pmu_cfg_req  )
+  `AXI_LITE_ASSIGN_TO_RESP  ( pmu_cfg_resp , pmu_cfg_master )
+`endif 
+
   typedef axi_pkg::xbar_rule_32_t tlb_cfg_xbar_rule_t;
 
   localparam axi_pkg::xbar_cfg_t FromHostTlbCfgXbarCfg = '{
     NoSlvPorts:  2,
-    NoMstPorts:  4,
+    NoMstPorts:  5,
     MaxMstTrans: 2,
-    MaxSlvTrans: 4,
+    MaxSlvTrans: 4,           // Maximum number of outstanding transactions per write or read
     FallThrough: 0,
     LatencyMode: axi_pkg::CUT_SLV_AX,
     PipelineStages: 32'd0,
@@ -169,9 +181,42 @@ module axi_lite_subsystem
     UniqueIds   : 0,
     AxiAddrWidth: AXI_LITE_ADDR_WIDTH,
     AxiDataWidth: AXI_LITE_DATA_WIDTH,
-    NoAddrRules: 4
+    NoAddrRules: 5
   };
 
+`ifdef PMU_BLOCK
+  localparam tlb_cfg_xbar_rule_t [FromHostTlbCfgXbarCfg.NoAddrRules-1:0]
+      FromHostTlbCfgXbarAddrMap = '{
+    '{idx: 32'd4, start_addr: 32'h1040_4000, end_addr: 32'h1040_5000},
+    '{idx: 32'd3, start_addr: 32'h1040_3000, end_addr: 32'h1040_4000},
+    '{idx: 32'd2, start_addr: 32'h1040_2000, end_addr: 32'h1040_3000},
+    '{idx: 32'd1, start_addr: 32'h1040_1000, end_addr: 32'h1040_2000},
+    '{idx: 32'd0, start_addr: 32'h1040_0000, end_addr: 32'h1040_1000}
+  };
+   
+  axi_lite_xbar #(
+     .Cfg                   ( FromHostTlbCfgXbarCfg          ),
+     .aw_chan_t             ( ariane_axi_soc::aw_chan_lite_t ),
+     .w_chan_t              ( ariane_axi_soc::w_chan_lite_t  ),
+     .b_chan_t              ( ariane_axi_soc::b_chan_lite_t  ),
+     .ar_chan_t             ( ariane_axi_soc::ar_chan_lite_t ),
+     .r_chan_t              ( ariane_axi_soc::r_chan_lite_t  ),
+     .axi_req_t             ( ariane_axi_soc::req_lite_t     ),
+     .axi_resp_t            ( ariane_axi_soc::resp_lite_t    ),
+     .rule_t                ( tlb_cfg_xbar_rule_t            )
+   ) i_axi_lite_xbar         (
+     .clk_i                 ( clk_i                                               ),
+     .rst_ni                ( rst_ni                                              ),
+     .test_i                ( 1'b0                                                ),
+     .slv_ports_req_i       ( {cluster_lite_req , host_lite_req }                 ), 
+     .slv_ports_resp_o      ( {cluster_lite_resp, host_lite_resp}                 ), 
+     .mst_ports_req_o       ( {pmu_cfg_req, c2hmailbox_lite_req,  h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}   ),
+     .mst_ports_resp_i      ( {pmu_cfg_resp, c2hmailbox_lite_resp, h2cmailbox_lite_resp, llc_cfg_resp, c2h_tlb_cfg_resp} ),
+     .addr_map_i            ( FromHostTlbCfgXbarAddrMap                           ),
+     .en_default_mst_port_i ( {1'b0, 1'b0}                                        ),
+     .default_mst_port_i    ( '0                                                  )
+   );   
+`else
   localparam tlb_cfg_xbar_rule_t [FromHostTlbCfgXbarCfg.NoAddrRules-1:0]
       FromHostTlbCfgXbarAddrMap = '{
     '{idx: 32'd3, start_addr: 32'h1040_3000, end_addr: 32'h1040_4000},
@@ -196,13 +241,13 @@ module axi_lite_subsystem
      .test_i                ( 1'b0                                                ),
      .slv_ports_req_i       ( {cluster_lite_req , host_lite_req }                 ), 
      .slv_ports_resp_o      ( {cluster_lite_resp, host_lite_resp}                 ), 
-     .mst_ports_req_o       ( {c2hmailbox_lite_req,  h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req } ),
+     .mst_ports_req_o       ( {c2hmailbox_lite_req,  h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}  ),
      .mst_ports_resp_i      ( {c2hmailbox_lite_resp, h2cmailbox_lite_resp, llc_cfg_resp, c2h_tlb_cfg_resp} ),
      .addr_map_i            ( FromHostTlbCfgXbarAddrMap                           ),
      .en_default_mst_port_i ( {1'b0, 1'b0}                                        ),
      .default_mst_port_i    ( '0                                                  )
    );   
-
+`endif
 
   axi_lite_mailbox #(
      .MailboxDepth ( 32'd8                       ),

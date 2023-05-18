@@ -16,6 +16,7 @@
 `include "axi/assign.svh"
 `include "register_interface/typedef.svh"
 `include "register_interface/assign.svh"
+`define PMU_BLOCK
 
 module cva6_subsystem 
   import axi_pkg::xbar_cfg_t;
@@ -25,6 +26,9 @@ module cva6_subsystem
   parameter int unsigned AXI_USER_WIDTH    = 1,
   parameter int unsigned AXI_ADDRESS_WIDTH = 64,
   parameter int unsigned AXI_DATA_WIDTH    = 64,
+`ifdef PMU_BLOCK
+  parameter int unsigned PMU_NUM_COUNTER   = 64,
+`endif
 `ifdef DROMAJO
   parameter bit          InclSimDTM        = 1'b0,
 `else
@@ -63,6 +67,11 @@ module cva6_subsystem
   input  logic             jtag_TRSTn,
   output logic             jtag_TDO_data,
   output logic             jtag_TDO_driven,
+
+  `ifdef PMU_BLOCK
+  // PMU
+  input  logic [PMU_NUM_COUNTER-1:0]  pmu_intr_i,
+  `endif
 
   //SERIAL LINK
   output ser_link_to_pad serial_link_to_pad,
@@ -742,20 +751,23 @@ module cva6_subsystem
   logic [1:0] irqs;
 
   ariane_peripherals #(
-    .AxiAddrWidth ( AXI_ADDRESS_WIDTH        ),
-    .AxiDataWidth ( AXI_DATA_WIDTH           ),
-    .AxiIdWidth   ( ariane_soc::IdWidthSlave ),
+    .AxiAddrWidth     ( AXI_ADDRESS_WIDTH        ),
+    .AxiDataWidth     ( AXI_DATA_WIDTH           ),
+    .AxiIdWidth       ( ariane_soc::IdWidthSlave ),
+`ifdef PMU_BLOCK
+    .PMU_NUM_COUNTER  ( PMU_NUM_COUNTER          ),
+`endif
 `ifdef TARGET_SYNTHESIS
-    .InclUART     ( 1'b1                     ),
+    .InclUART         ( 1'b1                     ),
 `else
-    .InclUART     ( 1'b0                     ),
+    .InclUART         ( 1'b0                     ),
 `endif
 `ifdef TARGET_FPGA  
-    .InclSPI      ( 1'b1                     ),
+    .InclSPI          ( 1'b1                     ),
 `else
-    .InclSPI      ( 1'b0                     ),
+    .InclSPI          ( 1'b0                     ),
 `endif
-    .InclEthernet ( 1'b0                     )
+    .InclEthernet     ( 1'b0                     )
   ) i_ariane_peripherals (
     .clk_i           ( clk_i                        ),
     .rst_ni          ( ndmreset_n                   ),
@@ -772,6 +784,11 @@ module cva6_subsystem
     .irq_o           ( irqs                         ),
     .rx_i            ( cva6_uart_rx_i               ),
     .tx_o            ( cva6_uart_tx_o               ),
+
+    `ifdef PMU_BLOCK
+    .pmu_intr_i      ( pmu_intr_i                   ),
+    `endif
+
     .eth_txck        ( ),
     .eth_rxck        ( ),
     .eth_rxctl       ( ),

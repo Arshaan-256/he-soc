@@ -9,9 +9,13 @@
 // specific language governing permissions and limitations under the License.
 
 // Xilinx Peripehrals
+`define PMU_BLOCK
 module ariane_peripherals 
     import udma_subsystem_pkg::N_CAN;
 #(
+`ifdef PMU_BLOCK
+    parameter  int unsigned PMU_NUM_COUNTER = 64,
+`endif
     parameter  int AxiAddrWidth = -1,
     parameter  int AxiDataWidth = -1,
     parameter  int AxiIdWidth   = -1,
@@ -34,6 +38,12 @@ module ariane_peripherals
     input  logic            cluster_eoc_i   ,
     input  logic [N_CAN-1:0] can_irq_i      ,
     input  logic            cl_dma_pe_evt_i ,
+
+    `ifdef PMU_BLOCK
+    // PMU
+    input  logic [PMU_NUM_COUNTER-1:0]  pmu_intr_i,
+    `endif
+
     output logic [1:0]      irq_o           ,
     // UART
     input  logic            rx_i            ,
@@ -84,7 +94,13 @@ module ariane_peripherals
     assign irq_sources[139]                          = cl_dma_pe_evt_i;
     assign irq_sources[140]                          = can_irq_i[0];
     assign irq_sources[141]                          = can_irq_i[1];
+
+`ifdef PMU_BLOCK
+    assign irq_sources[142+PMU_NUM_COUNTER-1:142]                     = pmu_intr_i;
+    assign irq_sources[ariane_soc::NumSources-1:142+PMU_NUM_COUNTER]  = '0;
+`else
     assign irq_sources[ariane_soc::NumSources-1:142] = '0;
+`endif
 
     REG_BUS #(
         .ADDR_WIDTH ( 32 ),
