@@ -16,7 +16,7 @@
 	 make clean all
 	```
 	 
-4. Before building the RTL using Bender, copy the contents of the vip folder to the following path: `he-soc/hardware/tb/vip`.
+4. Before building the RTL using Bender, copy the contents of the vip folder (you can find this folder in the original he-soc repo in the VM) to the following path: `he-soc/hardware/tb/vip`.
 
 5. Build the RTL  by running the following commands. Make sure, for simulation, to add the `localjtag=1` and `preload=1` flag to the `make scripts_vip` command.
 	```
