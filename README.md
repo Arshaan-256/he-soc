@@ -65,3 +65,5 @@
 	4. Yes, validate the peripherals.
 	
 	But it is possible that you might get an error: `vivado-2018.2 not found. No such command.` In that case, go to the `Makefile` in `./alsaqr/tcl/ips/*` (there are multiple ips here: boot_rom, clk_mngr, etc. and you need to do this for all of them). Update the `vivado-2018.2 vivado -mode gui -source run.tcl &` with the command that works for your system. So, what I did was simply: `vivado -mode gui -source run.tcl &`.
+	If you get an error for the IP not found in vivado in the last command make clean run, update the IPs by going to reports > report IP status
+	
