@@ -86,6 +86,6 @@
 	   Fix: 
 	   1. Go to `Reports` in the Menu Bar. 
 	   2. Select `Report IP status`.
-	   3. Vivado will open a window in the bottom menu, select `Upgrade Selected` as shown below:
+	   3. Vivado will open a window in the bottom menu, click on `Upgrade Selected` as shown below:
 	      ![image](https://github.com/Arshaan-256/he-soc/assets/30975751/4bce108c-687c-4f2e-bc60-0d56c9402f82)
-	     This should fix the issue.
+	     This should fix the issue. You can run `Generate Bitstream` again.
