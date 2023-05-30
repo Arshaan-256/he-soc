@@ -56,7 +56,13 @@
 
 8. **Testing on the board**
 
-	To generate the bitstream go to `he-soc/hardware/fpga` and follow the steps in the README.md there. 
+	To generate the bitstream go to the `hardware` folder and run the following commands:
+	```
+		bender update
+		make simple-padframe=1 scripts-bender-fpga-ddr exclude-cluster=1
+	```
+	
+	Then enter `fpga` folder and run `source setup.sh`.
 	
 	The settings you need to use for `source setup.sh` are:
 	1. VCU 118,
@@ -64,6 +70,22 @@
 	3. DDR4,
 	4. Yes, validate the peripherals.
 	
-	But it is possible that you might get an error: `vivado-2018.2 not found. No such command.` In that case, go to the `Makefile` in `./alsaqr/tcl/ips/*` (there are multiple ips here: boot_rom, clk_mngr, etc. and you need to do this for all of them). Update the `vivado-2018.2 vivado -mode gui -source run.tcl &` with the command that works for your system. So, what I did was simply: `vivado -mode gui -source run.tcl &`.
-	If you get an error for the IP not found in vivado in the last command make clean run, update the IPs by going to reports > report IP status
+	Once done, you need to run the following:
+	```
+		make ips
+		make clean run
+	```
 	
+	**Debugging**
+	1. It is possible that you get an error: `vivado-2018.2 not found. No such command.` 
+	   Fix: 
+	   1. Go to the `Makefile` in `./alsaqr/tcl/ips/*`. There are multiple ips here: boot_rom, clk_mngr, etc. and you need to do this for all of them.  
+	   2. Update the `vivado-2018.2 vivado` command in both rules `all` and `gui` with the command that works for your system. If you are using the VM, then should replace `vivado-2018.2 vivado -mode batch -source run.tcl` with `vivado -mode batch -source run.tcl` (and the same for the `gui` rule).
+	
+	2. When you run `make clean all` and get an error for `IP not found` in the Vivado GUI.
+	   Fix: 
+	   1. Go to `Reports` in the Menu Bar. 
+	   2. Select `Report IP status`.
+	   3. Vivado will open a window in the bottom menu, select `Upgrade Selected` as shown below:
+	      ![image](https://github.com/Arshaan-256/he-soc/assets/30975751/4bce108c-687c-4f2e-bc60-0d56c9402f82)
+	     This should fix the issue.
