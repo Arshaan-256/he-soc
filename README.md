@@ -77,13 +77,15 @@
 	```
 	
 	**Debugging**
-	1. It is possible that you get an error: `vivado-2018.2 not found. No such command.` 
-	   Fix: 
+	1. **Error**: It is possible that you get an error: `vivado-2018.2 not found. No such command.` 
+	   
+	   **Fix:** 
 	   1. Go to the `Makefile` in `./alsaqr/tcl/ips/*`. There are multiple ips here: boot_rom, clk_mngr, etc. and you need to do this for all of them.  
 	   2. Update the `vivado-2018.2 vivado` command in both rules `all` and `gui` with the command that works for your system. If you are using the VM, then should replace `vivado-2018.2 vivado -mode batch -source run.tcl` with `vivado -mode batch -source run.tcl` (and the same for the `gui` rule).
 	
-	2. When you run `make clean all` and get an error for `IP not found` in the Vivado GUI.
-	   Fix: 
+	2. **Error** When you run `make clean all` and get an error for `IP not found` in the Vivado GUI.
+	   
+	   **Fix:** 
 	   1. Go to `Reports` in the Menu Bar. 
 	   2. Select `Report IP status`.
 	   3. Vivado will open a window in the bottom menu, click on `Upgrade Selected` as shown below:
