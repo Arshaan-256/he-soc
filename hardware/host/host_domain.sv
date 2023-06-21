@@ -277,11 +277,22 @@ module host_domain
     .NUM_SOURCE       ( 1 )
   ) spu_out ();
 
+  localparam spu_pkg::cache_cfg_t CacheCfg = spu_pkg::cache_cfg_t'{
+    SetAssociativity: 32'd8,
+    NumLines: 32'd256,
+    NumBlocks: 32'd8
+  };
+
+  localparam spu_pkg::axi_cfg_t AXICfg = spu_pkg::axi_cfg_t'{
+    AddrWidth: AXI_ADDRESS_WIDTH,
+    DataWidth: AXI_DATA_WIDTH,
+    IdWidth: ariane_soc::IdWidthSlave,
+    UserWidth: AXI_USER_WIDTH
+  };
+
   spu_top #(
-    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
-    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
-    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
-    .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
+    .CacheCfg            ( CacheCfg             ),
+    .AXICfg              ( AXICfg               )
   ) spu_cpu_llc (
     .clk_i               ( s_soc_clk            ),
     .rst_ni              ( s_synch_soc_rst      ),
