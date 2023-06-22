@@ -20,14 +20,14 @@
 
 5. Build the RTL  by running the following commands. Make sure, for simulation, to add the `localjtag=1` and `preload=1` flag to the `make scripts_vip` command.
 	```
-		make update
-		make scripts_vip
+	make update
+	make scripts_vip
 	```
 	
 6. Compile the code.
 	```
-		cd ../software/hello/
-		make clean all
+	cd ../software/hello/
+	make clean all
 	```
 
 7. **Running simulation**
@@ -41,9 +41,7 @@
 		2. Run `./ci/setup.sh` to install all required tools (i.e. verilator, device-tree-compiler, riscv64-unknown-elf-*, ..)
 		
 	You can install verilator from source using `./ci/install-verilator.sh` or by manually installing `verilator >= 4.002` Note: There is currently a known issue with version 4.106 and 4.108. 4.106 does not compile and 4.108 hangs after a couple of cycles simulation time.)
-	```
-		git clone https://github.com/AlSaqr-platform/cva6.git
-	```
+
 	3. Build model and simulation
 		1. Build the Verilator model of CVA6 by using the Makefile:
 			```
@@ -58,8 +56,8 @@
 
 	To generate the bitstream go to the `hardware` folder and run the following commands:
 	```
-		bender update
-		make simple-padframe=1 scripts-bender-fpga-ddr exclude-cluster=1
+	bender update
+	make simple-padframe=1 scripts-bender-fpga-ddr exclude-cluster=1
 	```
 	
 	Then enter `fpga` folder and run `source setup.sh`.
@@ -72,8 +70,8 @@
 	
 	Once done, you need to run the following:
 	```
-		make ips
-		make clean run
+	make ips
+	make clean run
 	```
 	
 	**Debugging**
