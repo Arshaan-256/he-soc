@@ -14,7 +14,6 @@
 #define CONFIG_WIDTH 4
 #define NUM_ELEMENT 10
 
-#define NUM_INSTR 8
 #define INSTR_WIDTH 4
 
 void read_counters(int num_counter, long long unsigned int BASE_ADDR, int REG_SIZE_IN_BYTES);
@@ -48,7 +47,18 @@ int main(int argc, char const *argv[]) {
   long long int init_budget_val[]  = {0xFFFFFFFFFFFFFFFE, 0xFFFFFA000, 0xFFFFFB000, 0xFFFFFC000};
   long long int period_val[]       = {0x10};
   long long int timer;
-  long long int instr_spm[]        = {0x06400093, 0x0c808113, 0x002081b3, 0x00108233, 0x40110133, 0x00000013, 0xfe000ee3, 0x00000013};
+
+  int instr_spm[] = {0x06400093, 
+                     0x0c808113, 
+                     0x002081b3, 
+                     0x00108233, 
+                     0x40110133,
+                     0x00200393
+                     0x0043a223,
+                     0x0043a283 
+                     0x00000013, 
+                     0xfe000ee3, 
+                     0x00000013};
 
   printf("Hello PMU!\n");
   uart_wait_tx_done();
@@ -88,6 +98,8 @@ int main(int argc, char const *argv[]) {
   // read_counters(1, PMU_PERIOD_REG_BASE_ADDR, TIMER_WIDTH);
   // printf("Timer Register\n");
   // read_counters(1, PMU_TIMER_BASE_ADDR, TIMER_WIDTH);
+
+  int NUM_INSTR = sizeof(instr_spm) / sizeof(instr_spm[0]);
 
   printf("Writing Instruction SPM\n");
   write_counters(NUM_INSTR, PMU_INSTR_SPM_BASE_ADDR, INSTR_WIDTH, instr_spm);
@@ -130,4 +142,5 @@ void write_counters(int num_counter, long long unsigned int BASE_ADDR, int REG_S
     BASE_ADDR += REG_SIZE_IN_BYTES;
   }
 }
+
 
