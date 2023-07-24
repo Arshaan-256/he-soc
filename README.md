@@ -55,6 +55,7 @@
 
 	**Debugging**
    	1. **Error** `Failed to open design unit file "/home/ubuntu_20/mohammed/he-soc/hardware/tb/vip/hyperflash_model/s26ks512s.v" in read mode.`
+
    	   Make sure you have imported the verification IPs (VIPs) to the correct location (Step 4).
 
 9. **Testing on the board**
