@@ -53,7 +53,11 @@
 
 	Now, you can run the simulation.
 
-8. **Testing on the board**
+	**Debugging**
+   	1. **Error** `Failed to open design unit file "/home/ubuntu_20/mohammed/he-soc/hardware/tb/vip/hyperflash_model/s26ks512s.v" in read mode.`
+   	   Make sure you have imported the verification IPs (VIPs) to the correct location (Step 4).
+
+9. **Testing on the board**
 
 	To generate the bitstream go to the `hardware` folder and run the following commands:
 	```
@@ -76,7 +80,7 @@
 	```
 	
 	**Debugging**
-	1. **Error**: It is possible that you get an error: `vivado-2018.2 not found. No such command.` 
+	1. **Error** It is possible that you get an error: `vivado-2018.2 not found. No such command.` 
 	   
 	   **Fix:** 
 	   1. Go to the `Makefile` in `./alsaqr/tcl/ips/*`. There are multiple ips here: boot_rom, clk_mngr, etc. and you need to do this for all of them.  
