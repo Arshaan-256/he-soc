@@ -164,7 +164,7 @@ module host_domain
     ariane_axi_soc::req_lite_t  axi_pmu_cfg_req;
     ariane_axi_soc::resp_lite_t axi_pmu_cfg_res;
 
-    localparam int unsigned PMU_NUM_COUNTER    = 4;
+    localparam int unsigned PMU_NUM_COUNTER    = 10;
     localparam int unsigned PNU_COUNTER_WIDTH  = 64;
     logic  [PMU_NUM_COUNTER-1:0]          pmu_intr_o;
   `endif 
@@ -270,12 +270,29 @@ module host_domain
       .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
   ) hyper_axi_spu_o_bus ();
 
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH          ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH             ),
+    `ifdef EXCLUDE_LLC
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave   ),
+    `else
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave+1 ),
+    `endif
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH             )
+  ) mem_axi_spu_o_bus ();  
+
 
   SPU_INTF #(
     .NUM_EVENT        ( 5 ),
     .EVENT_INFO_BITS  ( 8 ),
     .NUM_SOURCE       ( 1 )
-  ) spu_out ();
+  ) spu_cpu_llc_out ();
+
+  SPU_INTF #(
+    .NUM_EVENT        ( 5 ),
+    .EVENT_INFO_BITS  ( 8 ),
+    .NUM_SOURCE       ( 1 )
+  ) spu_llc_mem_out ();
 
   localparam spu_pkg::cache_cfg_t CacheCfg = spu_pkg::cache_cfg_t'{
     SetAssociativity: 32'd8,
@@ -298,7 +315,18 @@ module host_domain
     .rst_ni              ( s_synch_soc_rst      ),
     .spu_slv             ( hyper_axi_bus        ),
     .spu_mst             ( hyper_axi_spu_o_bus  ),
-    .e_out               ( spu_out              )
+    .e_out               ( spu_cpu_llc_out      )
+  );
+
+  spu_top #(
+    .CacheCfg            ( CacheCfg             ),
+    .AXICfg              ( AXICfg               )
+  ) spu_llc_mem (
+    .clk_i               ( s_soc_clk            ),
+    .rst_ni              ( s_synch_soc_rst      ),
+    .spu_slv             ( mem_axi_spu_o_bus    ),
+    .spu_mst             ( mem_axi_bus          ),
+    .e_out               ( spu_llc_mem_out      )
   );
 
   pmu_top #(
@@ -311,7 +339,8 @@ module host_domain
   ) (
     .clk_i               ( s_soc_clk            ),
     .rst_ni              ( s_synch_soc_rst      ),
-    .spu_in              ( spu_out              ),
+    .spu_llc_in          ( spu_cpu_llc_out      ),
+    .spu_mem_in          ( spu_llc_mem_out      ),
     .conf_req_i          ( axi_pmu_cfg_req      ),
     .conf_resp_o         ( axi_pmu_cfg_res      ),
     .intr_o              ( pmu_intr_o           )
@@ -392,13 +421,18 @@ module host_domain
 `ifdef PMU_BLOCK
   `AXI_ASSIGN_TO_REQ(axi_cpu_req,hyper_axi_spu_o_bus)
   `AXI_ASSIGN_FROM_RESP(hyper_axi_spu_o_bus,axi_cpu_res)
+
+  `AXI_ASSIGN_FROM_REQ(mem_axi_spu_o_bus,axi_mem_req)
+  `AXI_ASSIGN_TO_RESP(axi_mem_res,mem_axi_spu_o_bus)
 `else
   `AXI_ASSIGN_TO_REQ(axi_cpu_req,hyper_axi_bus)
   `AXI_ASSIGN_FROM_RESP(hyper_axi_bus,axi_cpu_res)
-`endif 
 
   `AXI_ASSIGN_FROM_REQ(mem_axi_bus,axi_mem_req)
   `AXI_ASSIGN_TO_RESP(axi_mem_res,mem_axi_bus)
+`endif 
+
+  
   `AXI_LITE_ASSIGN_TO_REQ(axi_llc_cfg_req,llc_cfg_bus)
   `AXI_LITE_ASSIGN_FROM_RESP(llc_cfg_bus,axi_llc_cfg_res)
 
