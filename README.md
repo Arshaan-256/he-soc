@@ -33,7 +33,6 @@
 7. **Running simulation**
 	1. Go into the CVA6 folder at `he-soc/cva6` and run the following commands:
 		```
-		git clone https://github.com/AlSaqr-platform/cva6.git
   		git submodule update --init --recursive
 		```
 	
