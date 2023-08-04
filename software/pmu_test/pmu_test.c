@@ -7,14 +7,11 @@
 #define cfg_write(addr, val_)  (*(volatile unsigned int *)(long)(addr) = val_)
 #define cfg_read(addr)         (*(volatile unsigned int *)(long)(addr))
 
-// All Widths are in Bytes
 #define NUM_COUNTER 4
 #define TIMER_WIDTH 8
 #define COUNTER_WIDTH 8
 #define CONFIG_WIDTH 4
-#define NUM_ELEMENT 10
-
-#define INSTR_WIDTH 4
+#define NUM_ELEMENT 100
 
 void read_counters(int num_counter, long long unsigned int BASE_ADDR, int REG_SIZE_IN_BYTES);
 void write_counters(int num_counter, long long unsigned int BASE_ADDR, int REG_SIZE_IN_BYTES, long long int val[]);
@@ -23,11 +20,11 @@ int main(int argc, char const *argv[]) {
 
   #ifdef FPGA_EMULATION
   int baud_rate = 9600;
-  int test_freq = 100000000;
+  int test_freq = 50000000;
   #else
   set_flls();
   int baud_rate = 115200;
-  int test_freq = 100000000;
+  int test_freq = 50000000;
   #endif  
   uart_set_cfg(0,(test_freq/baud_rate)>>4);
 
@@ -39,7 +36,6 @@ int main(int argc, char const *argv[]) {
   long long unsigned int PMU_INIT_BUDGET_BASE_ADDR  = 0x10404000 + 1*NUM_COUNTER*8 + 2*NUM_COUNTER*4;
   long long unsigned int PMU_PERIOD_REG_BASE_ADDR   = 0x10404000 + 2*NUM_COUNTER*8 + 2*NUM_COUNTER*4;
   long long unsigned int PMU_TIMER_BASE_ADDR        = 0x10404000 + 2*NUM_COUNTER*8 + 2*NUM_COUNTER*4 + 1*TIMER_WIDTH;
-  long long unsigned int PMU_INSTR_SPM_BASE_ADDR    = 0x10404000;
 
   long long int counter_val[]      = {0x100, 0x200, 0x300, 0x400};
   long long int event_sel_val[]    = {0x2F, 0x3F, 0x4F, 0x5F};
@@ -48,64 +44,44 @@ int main(int argc, char const *argv[]) {
   long long int period_val[]       = {0x10};
   long long int timer;
 
-  int instr_spm[] = {0x06400093, 
-                     0x0c808113, 
-                     0x002081b3, 
-                     0x00108233, 
-                     0x40110133,
-                     0x00200393,
-                     0x0043a223,
-                     0x0043a283, 
-                     0x00000013, 
-                     0xfe000ee3, 
-                     0x00000013};
-
   printf("Hello PMU!\n");
   uart_wait_tx_done();
 
-  // printf("Counter\n");
-  // write_counters(NUM_COUNTER, PMU_COUNTER_BASE_ADDR, COUNTER_WIDTH, counter_val);
-  // printf("EventSel Config\n");
-  // write_counters(NUM_COUNTER, PMU_EVENT_SEL_BASE_ADDR, CONFIG_WIDTH, event_sel_val);
-  // printf("EventInfo Config\n");
-  // write_counters(NUM_COUNTER, PMU_EVENT_INFO_BASE_ADDR, CONFIG_WIDTH, event_info_val);
-  // printf("Initital Budget\n");
-  // write_counters(NUM_COUNTER, PMU_INIT_BUDGET_BASE_ADDR, COUNTER_WIDTH, init_budget_val);
-  // printf("Period Register\n");
-  // write_counters(1, PMU_PERIOD_REG_BASE_ADDR, COUNTER_WIDTH, period_val);
+  printf("Counter\n");
+  write_counters(NUM_COUNTER, PMU_COUNTER_BASE_ADDR, COUNTER_WIDTH, counter_val);
+  printf("EventSel Config\n");
+  write_counters(NUM_COUNTER, PMU_EVENT_SEL_BASE_ADDR, CONFIG_WIDTH, event_sel_val);
+  printf("EventInfo Config\n");
+  write_counters(NUM_COUNTER, PMU_EVENT_INFO_BASE_ADDR, CONFIG_WIDTH, event_info_val);
+  printf("Initital Budget\n");
+  write_counters(NUM_COUNTER, PMU_INIT_BUDGET_BASE_ADDR, COUNTER_WIDTH, init_budget_val);
+  printf("Period Register\n");
+  write_counters(1, PMU_PERIOD_REG_BASE_ADDR, COUNTER_WIDTH, period_val);
 
-  // printf("Counters initialized!\n");
-  // uart_wait_tx_done();
+  printf("Counters initialized!\n");
+  uart_wait_tx_done();
 
-  // volatile uint32_t comp_array[NUM_ELEMENT] = {0};
-  // for (int i=0; i<NUM_ELEMENT; i++) {
-  //   comp_array[i] = comp_array[i] + i;
-  // }
+  volatile uint32_t comp_array[NUM_ELEMENT] = {0};
+  for (int i=0; i<NUM_ELEMENT; i++) {
+    comp_array[i] = comp_array[i] + i;
+  }
 
-  // printf("Array traversed!\n");
-  // uart_wait_tx_done();
-  //  unsigned int val_64;
+  printf("Array traversed!\n");
+  uart_wait_tx_done();
+   unsigned int val_64;
 
-  // printf("Counter\n");
-  // read_counters(NUM_COUNTER, PMU_COUNTER_BASE_ADDR, COUNTER_WIDTH);
-  // printf("EventSel Config\n");
-  // read_counters(NUM_COUNTER, PMU_EVENT_SEL_BASE_ADDR, CONFIG_WIDTH);
-  // printf("EventInfo Config\n");
-  // read_counters(NUM_COUNTER, PMU_EVENT_INFO_BASE_ADDR, CONFIG_WIDTH);
-  // printf("Initital Budget\n");
-  // read_counters(NUM_COUNTER, PMU_INIT_BUDGET_BASE_ADDR, COUNTER_WIDTH);
-  // printf("Period Register\n");
-  // read_counters(1, PMU_PERIOD_REG_BASE_ADDR, TIMER_WIDTH);
-  // printf("Timer Register\n");
-  // read_counters(1, PMU_TIMER_BASE_ADDR, TIMER_WIDTH);
-
-  int NUM_INSTR = sizeof(instr_spm) / sizeof(instr_spm[0]);
-
-  printf("Writing Instruction SPM\n");
-  write_counters(NUM_INSTR, PMU_INSTR_SPM_BASE_ADDR, INSTR_WIDTH, instr_spm);
-
-  printf("Reading Instruction SPM\n");
-  read_counters(NUM_INSTR, PMU_INSTR_SPM_BASE_ADDR, INSTR_WIDTH);
+  printf("Counter\n");
+  read_counters(NUM_COUNTER, PMU_COUNTER_BASE_ADDR, COUNTER_WIDTH);
+  printf("EventSel Config\n");
+  read_counters(NUM_COUNTER, PMU_EVENT_SEL_BASE_ADDR, CONFIG_WIDTH);
+  printf("EventInfo Config\n");
+  read_counters(NUM_COUNTER, PMU_EVENT_INFO_BASE_ADDR, CONFIG_WIDTH);
+  printf("Initital Budget\n");
+  read_counters(NUM_COUNTER, PMU_INIT_BUDGET_BASE_ADDR, COUNTER_WIDTH);
+  printf("Period Register\n");
+  read_counters(1, PMU_PERIOD_REG_BASE_ADDR, TIMER_WIDTH);
+  printf("Timer Register\n");
+  read_counters(1, PMU_TIMER_BASE_ADDR, TIMER_WIDTH);
 
   printf("The test is over!\n");
   uart_wait_tx_done();
@@ -142,5 +118,3 @@ void write_counters(int num_counter, long long unsigned int BASE_ADDR, int REG_S
     BASE_ADDR += REG_SIZE_IN_BYTES;
   }
 }
-
-
