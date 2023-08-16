@@ -311,7 +311,7 @@ module host_domain
   ) (
     .clk_i               ( s_soc_clk            ),
     .rst_ni              ( s_synch_soc_rst      ),
-    .spu_in              ( spu_out              ),
+    .spu1_in             ( spu_out              ),
     .conf_req_i          ( axi_pmu_cfg_req      ),
     .conf_resp_o         ( axi_pmu_cfg_res      ),
     .intr_o              ( pmu_intr_o           )
