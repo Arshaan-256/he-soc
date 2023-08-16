@@ -271,7 +271,7 @@ module apb_subsystem
      (
 
          .events_o        ( events_o                      ),
-         
+
          .event_valid_i   ( '0                            ),
          .event_data_i    ( '0                            ),
          .event_ready_o   (                               ),
