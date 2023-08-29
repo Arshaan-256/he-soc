@@ -1,38 +1,48 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "utils.h"
-//#define FPGA_EMULATION
- 
-// The AXI4-Lite interconnect is 32bit.
-// Can only read-write to 32bits at a time.
-#define read_32b(addr)         (*(volatile uint32_t *)(long)(addr))
-#define write_32b(addr, val_)  (*(volatile uint32_t *)(long)(addr) = val_)
+/// This assumes the following: 
+///   1. The PMU counters (including the initial budget registers) are 32-bit with 
+///      the 31st bit reserved for Pending.
+///   2. Both the configuration registers are 32-bits.
+///
+/// NUM_COUNTER is parameterizable and should be set to the number of counters in the PMU.
+/// The memory map of the PMU is as follows:
+///     /************************************\
+///     | Initial Budget Register            |
+///     | Event Info Configuration Register  |          Not yet 4kB aligned
+///     | Event Selection Register           |              Counter Bundle
+///     | Counter                            |
+///     \************************************/
+///                     .
+///                     .                         ... x (NUM_COUNTER)
+///                     .
+///     /************************************\
+///     | Initial Budget Register            |
+///     | Event Info Configuration Register  |          Not yet 4kB aligned          
+///     | Event Selection Register           |              Counter Bundle
+///     | Counter                            |
+///     \************************************/
+///     /************************************\
+///     | Initial Budget Register            |
+///     | Event Info Configuration Register  |          Not yet 4kB aligned
+///     | Event Selection Register           |              Counter Bundle
+///     | Counter                            |
+///     \************************************/
+///     /************************************\
+///     | MemGuard Period Register           |          Not yet 4kB aligned
+///     | PMU Timer                          |              PMU Bundle
+///     \************************************/
+/// Each block is a separate 4kB-aligned page.
+/// The PMU Bundle includes the PMU Timer and the MemGuard Period Register.
+/// A counter bundle includes:
+///     1. Counter
+///     2. Event Selection Register
+///     3. Event Info Configuration Register
+///     4. Initial Budget Register
 
-#define TEST_1
+#include "pmu_test_func.c"
 
-// All Widths are in Bytes
-#define NUM_COUNTER 4
-
-#define COUNTER_WIDTH 4
-#define CONFIG_WIDTH 4
-#define TIMER_WIDTH 8
-
-#define INSTR_WIDTH 4
-#define DATA_WIDTH 4
-
-#define NUM_INSTR 100
-#define NUM_DATA 50
-
-
-// For the array traversal
-#define NUM_ELEMENT 100
-
-void read_32b_regs(uint32_t num_regs, uint64_t base_addr);
-void write_32b_regs(uint32_t num_regs, uint64_t base_addr, uint32_t val[]);
-
-void read_64b_regs(uint32_t num_regs, uint64_t base_addr);
-void write_64b_regs(uint32_t num_regs, uint64_t base_addr, uint64_t val[]);
-
+// *********************************************************************
+// Main Function
+// *********************************************************************
 int main(int argc, char const *argv[]) {
   #ifdef FPGA_EMULATION
   uint32_t baud_rate = 9600;
@@ -45,178 +55,197 @@ int main(int argc, char const *argv[]) {
 
   uart_set_cfg(0,(test_freq/baud_rate)>>4);
 
+  uint32_t error_count = 0;
+
   // Pointer is char to make it byte-addressable,
   // event_sel_config does not always align by 32B boundary!
 
-  uint64_t PMU_COUNTER_BASE_ADDR      = 0x10404000;
-  uint64_t PMU_EVENT_SEL_BASE_ADDR    = 0x10404000 + 1*NUM_COUNTER*COUNTER_WIDTH + 0*NUM_COUNTER*CONFIG_WIDTH;
-  uint64_t PMU_EVENT_INFO_BASE_ADDR   = 0x10404000 + 1*NUM_COUNTER*COUNTER_WIDTH + 1*NUM_COUNTER*CONFIG_WIDTH;
-  uint64_t PMU_INIT_BUDGET_BASE_ADDR  = 0x10404000 + 1*NUM_COUNTER*COUNTER_WIDTH + 2*NUM_COUNTER*CONFIG_WIDTH;
-  uint64_t PMU_PERIOD_REG_BASE_ADDR   = 0x10404000 + 2*NUM_COUNTER*COUNTER_WIDTH + 2*NUM_COUNTER*CONFIG_WIDTH;
-  uint64_t PMU_TIMER_BASE_ADDR        = 0x10404000 + 2*NUM_COUNTER*COUNTER_WIDTH + 2*NUM_COUNTER*CONFIG_WIDTH + 1*TIMER_WIDTH;
+  // Two 64-bit (8B) timer and one 32-bit status registers in the PMU bundle.
+  uint64_t PMU_BUNDLE_SIZE        = 2 * 8 + 4;
 
-  uint64_t PMU_INSTR_SPM_BASE_ADDR    = 0x10404000;
+  // Four 32-bit (4B) registers in one counter bundle.
+  uint64_t COUNTER_BUNDLE_SIZE    = 4 * 4;
 
-  uint32_t counter_val[]      = {0x100, 0x200, 0x300, 0x400};
-  uint32_t event_sel_val[]    = {0x1F002F, 0x1F003F, 0x1F004F, 0x1F005F};
-  uint32_t event_info_val[]   = {0xA00, 0xB00, 0xC00, 0xD00};
-  uint64_t init_budget_val[]  = {0xFFFFFFFFFFFFFFFE, 0xFFFFFA000, 0xFFFFFB000, 0xFFFFFC000};
-  uint64_t period_val[]       = {0x0};
+  // Base Addresses
+  uint64_t PMU_BASE_ADDR          = 0x10404000;     // Timer Base Address
+  uint64_t PERIOD_BASE_ADDR       = PMU_BASE_ADDR + 0x8;
+  uint64_t STATUS_BASE_ADDR       = PMU_BASE_ADDR + 0x8*2;
 
+  uint64_t COUNTER_BASE_ADDR      = PMU_BASE_ADDR + PMU_BUNDLE_SIZE;
+  uint64_t EVENT_SEL_BASE_ADDR    = COUNTER_BASE_ADDR + 0x4;
+  uint64_t EVENT_INFO_BASE_ADDR   = EVENT_SEL_BASE_ADDR + 0x4;
+  uint64_t INIT_BUDGET_BASE_ADDR  = EVENT_INFO_BASE_ADDR + 0x4;
+
+  uint64_t ISPM_BASE_ADDRESS      = 0x10405000;
+  uint64_t DSPM_BASE_ADDRESS      = 0x10406000;
+  
+  uint32_t counter_val[]          = {0x100, 0x200, 0x300, 0x400};
+  uint32_t event_sel_val[]        = {0x1FAB00, 0x1FAB01, 0x1FAB02, 0x1FAB03};
+  uint32_t event_info_val[]       = {0xA00, 0xB00, 0xC00, 0xD00};
+  uint32_t init_budget_val[]      = {0xFFFFFFE0, 0xFFFFA000, 0xFFFFB000, 0xFFFFC000};
+  uint64_t period_val             = 0x0;
   uint64_t timer;
+  
+  counter_b_t counter_b[NUM_COUNTER];
 
-  uint32_t program[] = {0x33,
-                          0xfe000ee3,
-                          0xff00f93,
-                          0x400f13,
-                          0xe93,
-                          0xfff00093,
-                          0x108093,
-                          0x8107,
-                          0x1f15663,
-                          0xffe09ae3,
-                          0xfe0e86e3,
-                          0x200eb3,
-                          0x12900e13,
-                          0x1c09007,
-                          0x33,
-                          0xfe000ee3};
+  for (int i=0; i<NUM_COUNTER; i++) {
+    counter_b[i].counter     = counter_val[i];
+    counter_b[i].event_sel   = event_sel_val[i];
+    counter_b[i].event_info  = event_info_val[i];
+    counter_b[i].init_budget = init_budget_val[i];
+  }
+
+  uint32_t program[] = {0x593,
+                        0x593,
+                        0x200193,
+                        0x93,
+                        0x100026f,
+                        0x13,
+                        0x13,
+                        0x400006f,
+                        0x117,
+                        0xff410113,
+                        0x2411a63,
+                        0x100093,
+                        0x140006f,
+                        0x108093,
+                        0x108093,
+                        0x108093,
+                        0x108093,
+                        0x108093,
+                        0x108093,
+                        0x300e93,
+                        0x300193,
+                        0x1d09463,
+                        0x301863,
+                        0xa00593,
+                        0x33,
+                        0xfe000ee3,
+                        0xc00593,
+                        0x33,
+                        0xfe000ee3};
 
   uint32_t program_size = sizeof(program) / sizeof(program[0]);                            
 
   printf("Hello PMU!\n");
   uart_wait_tx_done();
 
-  #ifdef TEST_0
-    printf("Counter\n");
-    write_64b_regs(NUM_COUNTER, PMU_COUNTER_BASE_ADDR, counter_val);
+  // unstall core here
+  // write_32b(base_addr, counter_b.event_info);
 
-    printf("EventSel Config\n");
-    write_32b_regs(NUM_COUNTER, PMU_EVENT_SEL_BASE_ADDR, event_sel_val); 
+  // # ifdef TEST_5
+  //   uint64_t counter_b_addr = COUNTER_BASE_ADDR;
+  //   printf("Initialize all counter bundles.\n");
+  //   uart_wait_tx_done();  
 
-    printf("EventInfo Config\n");
-    write_32b_regs(NUM_COUNTER, PMU_EVENT_INFO_BASE_ADDR, event_info_val);
+  //   for(int i=0; i<NUM_COUNTER; i++) {
+  //     printf("writing to %x\r\n", counter_b_addr);
+  //     write_counter_b(counter_b[i], counter_b_addr);
+  //     counter_b_addr = counter_b_addr + COUNTER_BUNDLE_SIZE;
+  //   }
 
-    printf("Initital Budget\n");
-    write_64b_regs(NUM_COUNTER, PMU_INIT_BUDGET_BASE_ADDR, init_budget_val);
+  //   counter_b_t cb;
+  //   printf("Read all counter bundles.\n");
+  //   uart_wait_tx_done();  
+    
+  //   counter_b_addr = COUNTER_BASE_ADDR;
+  //   for(uint32_t i=0; i<NUM_COUNTER; i++) {
+  //     printf("Reading from %x\r\n", counter_b_addr);    
+  //     cb = read_counter_b(counter_b_addr);
+  //     counter_b_addr = counter_b_addr + COUNTER_BUNDLE_SIZE;
 
-    printf("Period Register\n");
-    write_64b_regs(1, PMU_PERIOD_REG_BASE_ADDR, period_val);
-  #elif defined TEST_1
-    PMU_COUNTER_BASE_ADDR   = PMU_INSTR_SPM_BASE_ADDR + NUM_INSTR*INSTR_WIDTH + NUM_DATA*DATA_WIDTH;
-    PMU_EVENT_SEL_BASE_ADDR = PMU_COUNTER_BASE_ADDR + NUM_COUNTER*COUNTER_WIDTH;
+  //     if (cb.counter != counter_b[i].counter) {
+  //       error_count += 1;
+  //       printf("Error: Read counter is different from written\n. %x vs %x", cb.counter, counter_b[i].counter);
+  //     }
+  //     if (cb.event_sel != counter_b[i].event_sel) {
+  //       error_count += 1;
+  //       printf("Error: Read event_sel is different from written\n. %x vs %x", cb.event_sel, counter_b[i].event_sel);
+  //     }
+  //     if (cb.event_info != counter_b[i].event_info) {
+  //       error_count += 1;
+  //       printf("Error: Read event_info is different from written\n. %x vs %x", cb.event_info, counter_b[i].event_info);
+  //     }
+  //     if (cb.init_budget != counter_b[i].init_budget) {
+  //       error_count += 1;
+  //       printf("Error: Read init_budget is different from written\n. %x vs %x", cb.init_budget, counter_b[i].init_budget);
+  //     }
+  //   }
+  // #endif
 
-    printf("Counter\n");
-    write_32b_regs(NUM_COUNTER, PMU_COUNTER_BASE_ADDR, counter_val);
+  // #ifdef TEST_4
+  //   uint32_t read_program[program_size];
 
-    printf("EventSel Config\n");
-    write_32b_regs(NUM_COUNTER, PMU_EVENT_SEL_BASE_ADDR, event_sel_val);
+  //   printf("Initialize ISPM.\n");
+  //   write_spm_4B(program_size, ISPM_BASE_ADDRESS, program);
 
-    printf("Writing Instruction SPM\n");
-    write_32b_regs(program_size, PMU_INSTR_SPM_BASE_ADDR, program);
+  //   printf("Reading ISPM.\n");
+  //   read_spm_4B(program_size, ISPM_BASE_ADDRESS, read_program);
 
-    // Start the program
-    write_32b_regs(1, (PMU_INSTR_SPM_BASE_ADDR+4), &program[0]);
+  //   for (uint32_t i=0; i<program_size; i++) {
+  //     if (program[i] != read_program[i]) {
+  //       error_count += 1;
+  //       printf("Program at index [%0d] is different from written.");
+  //     }
+  //   }
 
-    printf("Counter\n");
-  #endif
+  //   printf("Starting the core!\n");
+  //   write_32b(STATUS_BASE_ADDR, 0);
+  // #endif 
 
-  printf("Counters initialized!\n");
-  uart_wait_tx_done();
+  uint32_t err_count = 0;
+  uint32_t err;
 
-  volatile uint32_t comp_array[NUM_ELEMENT] = {0};
-  for (uint32_t i=0; i<NUM_ELEMENT; i++) {
-     comp_array[i] = comp_array[i] + i;
-  }
-
-  printf("Array traversed!\n");
-  uart_wait_tx_done();
-
-  unsigned int val_64;
-
-  #ifdef TEST_0
-    printf("Counter\n");
-    read_64b_regs(NUM_COUNTER, PMU_COUNTER_BASE_ADDR);
-
-    printf("EventSel Config\n");
-    read_32b_regs(NUM_COUNTER, PMU_EVENT_SEL_BASE_ADDR);
-
-    printf("EventInfo Config\n");
-    read_32b_regs(NUM_COUNTER, PMU_EVENT_INFO_BASE_ADDR);
-
-    printf("Initital Budget\n");
-    read_64b_regs(NUM_COUNTER, PMU_INIT_BUDGET_BASE_ADDR);
-
-    printf("Period Register\n");
-    read_64b_regs(1, PMU_PERIOD_REG_BASE_ADDR);
+  // Testing for ISPM
+  err = test_spm(ISPM_BASE_ADDRESS, program_size, program);
+  err_count += err;
   
-    printf("Timer Register\n");
-    read_64b_regs(1, PMU_TIMER_BASE_ADDR);
-  #endif
+  // Testing for DSPM
+  err = test_spm_rand(DSPM_BASE_ADDRESS, 100);
+
+  err_count += err;
+
+  // uint32_t num = 0;
+  // uint32_t output = 0;
+  // for (uint32_t i=0; i<20; i++) {
+  //   write_32b(STATUS_BASE_ADDR, 0);
+  //   num = i*NUM_ELEMENT;
+  //   output = array_traversal(num);
+  //   write_32b(STATUS_BASE_ADDR, 1);
+  // }
+
 
   printf("The test is over!\n");
+  printf("Errors: %0d\n", error_count);
   uart_wait_tx_done();
 
   return 0;
 }
 
-void read_32b_regs(uint32_t num_regs, uint64_t base_addr) {
-  uint32_t val;
+counter_b_t read_counter_b(uint64_t base_addr) {
+  counter_b_t counter_b;
 
-  for (uint32_t i=0; i<num_regs; i++) {
-    val = read_32b(base_addr);
+  counter_b.counter     = read_32b(base_addr);
+  base_addr = base_addr + 0x4;
 
-    printf("Read: %x: %x\n", base_addr, val);
-    uart_wait_tx_done();
-
-    base_addr += 4;
-  }
+  counter_b.event_sel   = read_32b(base_addr);
+  base_addr = base_addr + 0x4;
+  
+  counter_b.event_info  = read_32b(base_addr);
+  base_addr = base_addr + 0x4;
+  
+  counter_b.init_budget = read_32b(base_addr);
+  
+  #ifdef DEBUG
+    printf("Read CounterBundle: %x %x %x %x\n", 
+            counter_b.counter, 
+            counter_b.event_sel, 
+            counter_b.event_info, 
+            counter_b.init_budget);
+  #endif
+  
+  return counter_b;  
 }
 
-void write_32b_regs(uint32_t num_regs, uint64_t base_addr, uint32_t* val) {
-  for (uint32_t i=0; i<num_regs; i++) {
-    write_32b(base_addr, val[i]);
-
-    printf("Write: %x: %x\n", base_addr, val[i]);
-    uart_wait_tx_done();
-
-    base_addr += 4;
-  }
-}
-
-void read_64b_regs(uint32_t num_regs, uint64_t base_addr) {
-  uint32_t val_l, val_h;
-  uint64_t val;
-
-  for (uint32_t i=0; i<num_regs; i++) {
-    val_l = read_32b(base_addr);
-    val_h = read_32b(base_addr+4);
-
-    val = (val_h << 32) | val_l; 
-
-    printf("Read: %x: %x\n", base_addr, val);
-    uart_wait_tx_done();
-
-    base_addr += 8;
-
-  }
-}
-
-void write_64b_regs(uint32_t num_regs, uint64_t base_addr, uint64_t* val) {
-  uint32_t val_l, val_h;
-
-  for (uint32_t i=0; i<num_regs; i++) {
-    val_l = val[i] & 0xFFFFFFFF;
-    val_h = val[i] >> 32;
-
-    write_32b(base_addr, val_l);
-    write_32b(base_addr+4, val_h);
-
-    printf("Write: %x: %x\n", base_addr, val[i]);
-    uart_wait_tx_done();
-
-    base_addr += 8;
-  }
-} 
 
 
