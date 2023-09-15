@@ -55,6 +55,7 @@ int main(int argc, char const *argv[]) {
 
   uart_set_cfg(0,(test_freq/baud_rate)>>4);
 
+  uint32_t err;
   uint32_t error_count = 0;
 
   // Pointer is char to make it byte-addressable,
@@ -81,6 +82,7 @@ int main(int argc, char const *argv[]) {
   
   uint32_t counter_val[]          = {0x100, 0x200, 0x300, 0x400};
   uint32_t event_sel_val[]        = {0x1FAB00, 0x1FAB01, 0x1FAB02, 0x1FAB03};
+  uint32_t act_event_sel_val[]    = {0x1F001F, 0x1F002F, 0x1F003F, 0x1F004F};
   uint32_t event_info_val[]       = {0xA00, 0xB00, 0xC00, 0xD00};
   uint32_t init_budget_val[]      = {0xFFFFFFE0, 0xFFFFA000, 0xFFFFB000, 0xFFFFC000};
   uint64_t period_val             = 0x0;
@@ -97,154 +99,331 @@ int main(int argc, char const *argv[]) {
 
   uint32_t program[] = {0x593,
                         0x593,
-                        0x200193,
-                        0x93,
-                        0x100026f,
-                        0x13,
-                        0x13,
-                        0x400006f,
-                        0x117,
-                        0xff410113,
-                        0x2411a63,
-                        0x100093,
-                        0x140006f,
-                        0x108093,
-                        0x108093,
-                        0x108093,
-                        0x108093,
-                        0x108093,
-                        0x108093,
-                        0x300e93,
-                        0x300193,
-                        0x1d09463,
-                        0x301863,
-                        0xa00593,
-                        0x33,
-                        0xfe000ee3,
-                        0xc00593,
-                        0x33,
-                        0xfe000ee3};
+                        0x104060b7,
+0x8093,
+0xaa0137,
+0xaa10113,
+0x20a023,
+0xaf03,
+0xaa0eb7,
+0xaae8e93,
+0x200193,
+0x47df1063,
+0x104060b7,
+0x408093,
+0xaa00b137,
+0xa0010113,
+0x20a223,
+0x40af03,
+0xaa00beb7,
+0xa00e8e93,
+0x300193,
+0x43df1c63,
+0x104060b7,
+0x208093,
+0xaa01137,
+0xaa010113,
+0x20a423,
+0x80af03,
+0xaa01eb7,
+0xaa0e8e93,
+0x400193,
+0x41df1863,
+0x104060b7,
+0x8093,
+0xa00aa137,
+0xa10113,
+0x20a623,
+0xc0af03,
+0xa00aaeb7,
+0xae8e93,
+0x500193,
+0x3fdf1463,
+0x104060b7,
+0x1008093,
+0xaa0137,
+0xaa10113,
+0xfe20aa23,
+0xff40af03,
+0xaa0eb7,
+0xaae8e93,
+0x600193,
+0x3ddf1063,
+0x104060b7,
+0xc08093,
+0xaa00b137,
+0xa0010113,
+0xfe20ac23,
+0xff80af03,
+0xaa00beb7,
+0xa00e8e93,
+0x700193,
+0x39df1c63,
+0x104060b7,
+0x808093,
+0xaa01137,
+0xaa010113,
+0xfe20ae23,
+0xffc0af03,
+0xaa01eb7,
+0xaa0e8e93,
+0x800193,
+0x37df1863,
+0x104060b7,
+0x408093,
+0xa00aa137,
+0xa10113,
+0x20a023,
+0xaf03,
+0xa00aaeb7,
+0xae8e93,
+0x900193,
+0x35df1463,
+0x104060b7,
+0x2008093,
+0x12345137,
+0x67810113,
+0xfe008213,
+0x2222023,
+0xa283,
+0x12345eb7,
+0x678e8e93,
+0xa00193,
+0x31d29e63,
+0x104060b7,
+0x808093,
+0x58213137,
+0x9810113,
+0xffd08093,
+0x20a3a3,
+0x10406237,
+0xc20213,
+0x22283,
+0x58213eb7,
+0x98e8e93,
+0xb00193,
+0x2fd29463,
+0xc00193,
+0x213,
+0xaabbd0b7,
+0xcdd08093,
+0x10406137,
+0x10113,
+0x112023,
+0x12f03,
+0xaabbdeb7,
+0xcdde8e93,
+0x2bdf1e63,
+0x120213,
+0x200293,
+0xfc521ae3,
+0xd00193,
+0x213,
+0xdaabc0b7,
+0xccd08093,
+0x10406137,
+0x10113,
+0x13,
+0x112223,
+0x412f03,
+0xdaabceb7,
+0xccde8e93,
+0x29df1063,
+0x120213,
+0x200293,
+0xfc5218e3,
+0xe00193,
+0x213,
+0xddaac0b7,
+0xbcc08093,
+0x10406137,
+0x410113,
+0x13,
+0x13,
+0x112423,
+0x812f03,
+0xddaaceb7,
+0xbcce8e93,
+0x25df1063,
+0x120213,
+0x200293,
+0xfc5216e3,
+0xf00193,
+0x213,
+0xcddab0b7,
+0xbbc08093,
+0x13,
+0x10406137,
+0x410113,
+0x112623,
+0xc12f03,
+0xcddabeb7,
+0xbbce8e93,
+0x21df1263,
+0x120213,
+0x200293,
+0xfc5218e3,
+0x1000193,
+0x213,
+0xccddb0b7,
+0xabb08093,
+0x13,
+0x10406137,
+0x210113,
+0x13,
+0x112823,
+0x1012f03,
+0xccddbeb7,
+0xabbe8e93,
+0x1ddf1263,
+0x120213,
+0x200293,
+0xfc5216e3,
+0x1100193,
+0x213,
+0xbccde0b7,
+0xaab08093,
+0x13,
+0x13,
+0x10406137,
+0x10113,
+0x112a23,
+0x1412f03,
+0xbccdeeb7,
+0xaabe8e93,
+0x19df1263,
+0x120213,
+0x200293,
+0xfc5216e3,
+0x1200193,
+0x213,
+0x10406137,
+0x810113,
+0x1120b7,
+0x23308093,
+0x112023,
+0x12f03,
+0x112eb7,
+0x233e8e93,
+0x15df1663,
+0x120213,
+0x200293,
+0xfc521ae3,
+0x1300193,
+0x213,
+0x10406137,
+0x210113,
+0x300110b7,
+0x22308093,
+0x13,
+0x112223,
+0x412f03,
+0x30011eb7,
+0x223e8e93,
+0x11df1863,
+0x120213,
+0x200293,
+0xfc5218e3,
+0x1400193,
+0x213,
+0x10406137,
+0x410113,
+0x330010b7,
+0x12208093,
+0x13,
+0x13,
+0x112423,
+0x812f03,
+0x33001eb7,
+0x122e8e93,
+0xddf1863,
+0x120213,
+0x200293,
+0xfc5216e3,
+0x1500193,
+0x213,
+0x10406137,
+0x10113,
+0x13,
+0x233000b7,
+0x11208093,
+0x112623,
+0xc12f03,
+0x23300eb7,
+0x112e8e93,
+0x9df1a63,
+0x120213,
+0x200293,
+0xfc5218e3,
+0x1600193,
+0x213,
+0x10406137,
+0x10113,
+0x13,
+0x223300b7,
+0x1108093,
+0x13,
+0x112823,
+0x1012f03,
+0x22330eb7,
+0x11e8e93,
+0x5df1a63,
+0x120213,
+0x200293,
+0xfc5216e3,
+0x1700193,
+0x213,
+0x10406137,
+0x10113,
+0x13,
+0x13,
+0x122330b7,
+0x108093,
+0x112a23,
+0x1412f03,
+0x12233eb7,
+0x1e8e93,
+0x1df1a63,
+0x120213,
+0x200293,
+0xfc5216e3,
+0x301863,
+0xa00593,
+0x33,
+0xfe000ee3,
+0xc00593,
+0x33,
+0xfe000ee3};
 
   uint32_t program_size = sizeof(program) / sizeof(program[0]);                            
 
   printf("Hello PMU!\n");
   uart_wait_tx_done();
 
-  // unstall core here
-  // write_32b(base_addr, counter_b.event_info);
-
-  // # ifdef TEST_5
-  //   uint64_t counter_b_addr = COUNTER_BASE_ADDR;
-  //   printf("Initialize all counter bundles.\n");
-  //   uart_wait_tx_done();  
-
-  //   for(int i=0; i<NUM_COUNTER; i++) {
-  //     printf("writing to %x\r\n", counter_b_addr);
-  //     write_counter_b(counter_b[i], counter_b_addr);
-  //     counter_b_addr = counter_b_addr + COUNTER_BUNDLE_SIZE;
-  //   }
-
-  //   counter_b_t cb;
-  //   printf("Read all counter bundles.\n");
-  //   uart_wait_tx_done();  
-    
-  //   counter_b_addr = COUNTER_BASE_ADDR;
-  //   for(uint32_t i=0; i<NUM_COUNTER; i++) {
-  //     printf("Reading from %x\r\n", counter_b_addr);    
-  //     cb = read_counter_b(counter_b_addr);
-  //     counter_b_addr = counter_b_addr + COUNTER_BUNDLE_SIZE;
-
-  //     if (cb.counter != counter_b[i].counter) {
-  //       error_count += 1;
-  //       printf("Error: Read counter is different from written\n. %x vs %x", cb.counter, counter_b[i].counter);
-  //     }
-  //     if (cb.event_sel != counter_b[i].event_sel) {
-  //       error_count += 1;
-  //       printf("Error: Read event_sel is different from written\n. %x vs %x", cb.event_sel, counter_b[i].event_sel);
-  //     }
-  //     if (cb.event_info != counter_b[i].event_info) {
-  //       error_count += 1;
-  //       printf("Error: Read event_info is different from written\n. %x vs %x", cb.event_info, counter_b[i].event_info);
-  //     }
-  //     if (cb.init_budget != counter_b[i].init_budget) {
-  //       error_count += 1;
-  //       printf("Error: Read init_budget is different from written\n. %x vs %x", cb.init_budget, counter_b[i].init_budget);
-  //     }
-  //   }
-  // #endif
-
-  // #ifdef TEST_4
-  //   uint32_t read_program[program_size];
-
-  //   printf("Initialize ISPM.\n");
-  //   write_spm_4B(program_size, ISPM_BASE_ADDRESS, program);
-
-  //   printf("Reading ISPM.\n");
-  //   read_spm_4B(program_size, ISPM_BASE_ADDRESS, read_program);
-
-  //   for (uint32_t i=0; i<program_size; i++) {
-  //     if (program[i] != read_program[i]) {
-  //       error_count += 1;
-  //       printf("Program at index [%0d] is different from written.");
-  //     }
-  //   }
-
-  //   printf("Starting the core!\n");
-  //   write_32b(STATUS_BASE_ADDR, 0);
-  // #endif 
-
-  uint32_t err_count = 0;
-  uint32_t err;
+  test_counter_bundle(COUNTER_BASE_ADDR, 4, COUNTER_BUNDLE_SIZE, counter_b);
 
   // Testing for ISPM
   err = test_spm(ISPM_BASE_ADDRESS, program_size, program);
-  err_count += err;
+  error_count += err;
   
   // Testing for DSPM
   err = test_spm_rand(DSPM_BASE_ADDRESS, 100);
+  error_count += err;
 
-  err_count += err;
+  printf("Starting the core!\n");
+  write_32b(STATUS_BASE_ADDR, 0);
 
-  // uint32_t num = 0;
-  // uint32_t output = 0;
-  // for (uint32_t i=0; i<20; i++) {
-  //   write_32b(STATUS_BASE_ADDR, 0);
-  //   num = i*NUM_ELEMENT;
-  //   output = array_traversal(num);
-  //   write_32b(STATUS_BASE_ADDR, 1);
-  // }
-
+  for (uint32_t i=0; i<NUM_ELEMENT; i++) {
+    write_32b(STATUS_BASE_ADDR, 0);
+    array_traversal(NUM_ELEMENT*(i+1));
+    write_32b(STATUS_BASE_ADDR, 1);
+  }
 
   printf("The test is over!\n");
   printf("Errors: %0d\n", error_count);
   uart_wait_tx_done();
 
   return 0;
-}
-
-counter_b_t read_counter_b(uint64_t base_addr) {
-  counter_b_t counter_b;
-
-  counter_b.counter     = read_32b(base_addr);
-  base_addr = base_addr + 0x4;
-
-  counter_b.event_sel   = read_32b(base_addr);
-  base_addr = base_addr + 0x4;
-  
-  counter_b.event_info  = read_32b(base_addr);
-  base_addr = base_addr + 0x4;
-  
-  counter_b.init_budget = read_32b(base_addr);
-  
-  #ifdef DEBUG
-    printf("Read CounterBundle: %x %x %x %x\n", 
-            counter_b.counter, 
-            counter_b.event_sel, 
-            counter_b.event_info, 
-            counter_b.init_budget);
-  #endif
-  
-  return counter_b;  
 }
 
 

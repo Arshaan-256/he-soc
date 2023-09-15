@@ -50,7 +50,6 @@ uint32_t my_rand(uint32_t seed);
 void read_32b_regs(uint64_t base_addr, uint32_t len, uint32_t* rval, uint32_t step_size);
 void write_32b_regs(uint64_t base_addr, uint32_t len, uint32_t val[], uint32_t step_size);
 
-
 // Read-Write functions to write to `num_regs` number of 64-bit registers.
 // The address of the first register is `base_addr` and each consequent register is `+ step_size` away from the previous one.
 void read_64b_regs(uint64_t base_addr, uint32_t len, uint64_t* rval, uint32_t step_size);
@@ -59,11 +58,19 @@ void write_64b_regs(uint64_t base_addr, uint32_t len, uint64_t val[], uint32_t s
 // Function reads a struct of type `counter_b_t` from `base_addr` and returns it.
 counter_b_t read_counter_b(uint64_t base_addr);
 // Function writes a a struct of type `counter_b_t` to `base_addr`.
-void write_counter_b(counter_b_t counter_b, uint64_t base_addr);
+void write_counter_b(uint64_t base_addr, counter_b_t counter_b);
+
+// Function to test read and writes to counter bundles.
+// This test will make `num_rw` number of writes, from array `val[]` (of type `counter_b_t`),  and then reads from the counter bundles; starting from addreses `base_addr`.
+// For each mismatch it increments the error counter and then returns it.
+// A return of 0 indicates that the test successfully passed.
+uint32_t test_counter_bundle(uint64_t base_addr, uint32_t num_rw, uint32_t bundle_size, counter_b_t val[]);
+// This function generates a random array of size `num_rw` (using `my_rand()`) and then calls `test_counterb`. 
+uint32_t test_counter_bundle_rand(uint64_t base_addr, uint32_t num_rw, uint32_t bundle_size);
 
 uint32_t array_traversal(uint32_t len);
 
-// Function to test read and writes to Data SPM.
+// Function to test read and writes to the SPM.
 // This test will make `num_rw` number of writes, from array `val[]`,  and then reads to the DSPM, starting from addreses `base_addr`.
 // For each mismatch it increments the error counter and then returns it.
 // A return of 0 indicates that the test successfully passed.
