@@ -34,7 +34,7 @@ module ariane_peripherals
     input  logic            cluster_eoc_i   ,
     input  logic [N_CAN-1:0] can_irq_i      ,
     input  logic            cl_dma_pe_evt_i ,
-    output logic [1:0]      irq_o           ,
+    output logic [ariane_soc::NumTargets-1:0]      irq_o           ,
     // UART
     input  logic            rx_i            ,
     output logic            tx_o            ,
