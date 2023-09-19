@@ -11,15 +11,21 @@
 // Author: Florian Zaruba, ETH Zurich
 // Description: Contains SoC information as constants
 package ariane_soc;
-  // M-Mode Hart, S-Mode Hart
-  localparam int unsigned NumTargets = 2;
+  // M-Mode Hart, S-Mode Hart for each core (4 cores)
+  localparam int unsigned NumTargets = 2*4;
   // Uart, SPI, Ethernet, reserved
   localparam int unsigned NumSources = 255;
   localparam int unsigned MaxPriority = 7;
 
-  localparam NrSlaves = 4; // actually masters, but slaves on the crossbar: Debug module, CVA6, Cluster
+  localparam NrSlaves = 4+1; // actually masters, but slaves on the crossbar 
+  // Slave 0: CVA6-0
+  // Slave 1: Debug Module
+  // Slave 2: Cluster
+  // Slave 3: DDR / Serial Link (?) 
+  // Slave 4: CVA6-1
+  // Slave 5: CVA6-2
+  // Slave 6: CVA6-3
 
-   
   typedef struct packed {
       logic [31:0] idx;
       logic [63:0] start_addr;
@@ -53,7 +59,7 @@ package ariane_soc;
     ROM         = 1,
     Debug       = 0
   } axi_slaves_t;
-   
+  
   localparam NB_PERIPHERALS = HYAXI + 1;
 
   `ifdef FPGA_EMUL 
@@ -85,19 +91,19 @@ package ariane_soc;
   localparam bit GenProtocolChecker = 1'b0;
 
   typedef enum logic [63:0] {
-    DebugBase    = 64'h0000_0000,
-    ROMBase      = 64'h0001_0000,
-    CLINTBase    = 64'h0200_0000,
-    PLICBase     = 64'h0C00_0000,
-    ClusterBase  = 64'h1000_0000,
-    AXILiteBase  = 64'h1040_0000,                             
-    APB_SLVSBase = 64'h1A10_0000,
-    L2SPMBase    = 64'h1C00_0000,
-    TimerBase    = 64'h1800_0000,
-    SPIBase      = 64'h2000_0000,
-    EthernetBase = 64'h3000_0000,
-    UARTBase     = 64'h4000_0000,
-    SerLink_Base = 64'h6000_0000,
+    DebugBase    = 64'h0000_0000, // 0
+    ROMBase      = 64'h0001_0000, // 1
+    CLINTBase    = 64'h0200_0000, // 2
+    PLICBase     = 64'h0C00_0000, // 3
+    ClusterBase  = 64'h1000_0000, // 4
+    AXILiteBase  = 64'h1040_0000, // 5                           
+    APB_SLVSBase = 64'h1A10_0000, // 6
+    L2SPMBase    = 64'h1C00_0000, // 7
+    TimerBase    = 64'h1800_0000, // 8
+    SPIBase      = 64'h2000_0000, // 9
+    EthernetBase = 64'h3000_0000, // 10
+    UARTBase     = 64'h4000_0000, // 11
+    SerLink_Base = 64'h6000_0000, // 12
     HYAXIBase    = 64'h8000_0000
   } soc_bus_start_t; 
   // Let x = NB_PERIPHERALS: as long as Base(xth slave)+Length(xth slave) is < 1_0000_0000 we can cut the 32 MSBs addresses without any worries. 
