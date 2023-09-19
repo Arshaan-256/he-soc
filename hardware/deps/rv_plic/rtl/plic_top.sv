@@ -83,7 +83,11 @@ module plic_top #(
   logic [N_TARGET-1:0][N_SOURCE:0] ie_i, ie_o;
   logic [N_TARGET-1:0] ie_we_o;
 
-  plic_regs i_plic_regs (
+  plic_regs #(
+    .N_SOURCE (N_SOURCE),
+    .N_TARGET (N_TARGET),
+    .SRCW     (SRCW)
+  ) i_plic_regs (
     .prio_i(prio_i),
     .prio_o(prio_o),
     .prio_we_o(prio_we_o),
