@@ -23,7 +23,7 @@ module cva6_synth_wrap
   localparam AXI_USER_WIDTH     = 1,
   localparam AXI_DATA_WIDTH     = 64,
   localparam AXI_STRB_WIDTH     = AXI_ADDR_WIDTH/8,
-  localparam LOG_DEPTH          = 1,
+  parameter int unsigned LOG_DEPTH = 1,
                              
   localparam AW_WIDTH           = AXI_ID_WIDTH+AXI_ADDR_WIDTH+AXI_USER_WIDTH+$bits(axi_pkg::len_t)+$bits(axi_pkg::size_t)+$bits(axi_pkg::burst_t)+$bits(axi_pkg::cache_t)+$bits(axi_pkg::prot_t)+$bits(axi_pkg::qos_t)+$bits(axi_pkg::region_t)+$bits(axi_pkg::atop_t)+1,
   localparam W_WIDTH            = AXI_USER_WIDTH+AXI_STRB_WIDTH+AXI_DATA_WIDTH+1,
@@ -91,7 +91,7 @@ module cva6_synth_wrap
     .AXI_DATA_WIDTH ( 64   ),
     .AXI_ID_WIDTH   ( 5    ),
     .AXI_USER_WIDTH ( 1    ),
-    .LOG_DEPTH      ( 1    )
+    .LOG_DEPTH      ( LOG_DEPTH  )
   ) cva6_axi_master_src();
 
                        
@@ -104,7 +104,7 @@ module cva6_synth_wrap
     .clk_i                ( clk_i               ),
     .rst_ni               ( rst_ni              ),
     .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
-    .hart_id_i            ( '0                  ),
+    .hart_id_i            ( hart_id_i           ),
     .irq_i                ( irq_i               ), // async signal
     .ipi_i                ( ipi_i               ), // async signal
     .time_irq_i           ( time_irq_i          ), // async signal
@@ -124,7 +124,7 @@ module cva6_synth_wrap
                       .AXI_ADDR_WIDTH(64),
                       .AXI_DATA_WIDTH(64),
                       .AXI_USER_WIDTH(1),
-                      .LOG_DEPTH(1)
+                      .LOG_DEPTH(LOG_DEPTH)
                       )
    cva6tosocdomainfifo (
                         .src_clk_i  ( clk_i               ),
