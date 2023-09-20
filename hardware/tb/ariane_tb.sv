@@ -1137,8 +1137,14 @@ module ariane_tb;
          dut.i_host_domain.i_l2_subsystem.CUTS[0].bank_i.addr_i =='0 &&
          dut.i_host_domain.i_l2_subsystem.CUTS[0].bank_i.wdata_i ==32'heeeeeeee );
       `ifdef POWER_CVA6
-      $dumpfile("cva6.vcd");
-    	$dumpvars(0, dut.i_host_domain.i_cva6_subsystem.i_ariane_wrap);
+      // $dumpfile("cva6_0.vcd");
+    	// $dumpvars(0, dut.i_host_domain.i_cva6_subsystem.i_ariane_wrap_0);
+      // $dumpfile("cva6_1.vcd");
+    	// $dumpvars(0, dut.i_host_domain.i_cva6_subsystem.i_ariane_wrap_1);
+      // $dumpfile("cva6_2.vcd");
+    	// $dumpvars(0, dut.i_host_domain.i_cva6_subsystem.i_ariane_wrap_2);
+      // $dumpfile("cva6_3.vcd");
+    	// $dumpvars(0, dut.i_host_domain.i_cva6_subsystem.i_ariane_wrap_3);
       `elsif POWER_CL
       $dumpfile("cl.vcd");
     	$dumpvars(0, dut.cluster_i);
@@ -1469,30 +1475,147 @@ module ariane_tb;
     riscv_dbg.write_dmi(dm::Data1, 32'h0000_0000);
     do riscv_dbg.read_dmi(dm::SBCS, sbcs);
     while (sbcs.sbbusy);
+
+    // *******************************************************
+    // Core 0
+    // *******************************************************
     // Halt Req
+    // DMStatus gets the HARTID from DMControl. 
+    // Thus the DMControl Write and DMStatus Read have to be done in serial.
     riscv_dbg.write_dmi(dm::DMControl, 32'h8000_0001);
     do riscv_dbg.read_dmi(dm::SBCS, sbcs);
     while (sbcs.sbbusy);
+
     // Wait for CVA6 to be halted
     do riscv_dbg.read_dmi(dm::DMStatus, dm_status);
     while (!dm_status[8]);
-    // Ensure haltreq, resumereq and ackhavereset all equal to 0
+
+    // Ensure haltreq, resumereq and ackhavereset all equal to 0      
     riscv_dbg.write_dmi(dm::DMControl, 32'h0000_0001);
     do riscv_dbg.read_dmi(dm::SBCS, sbcs);
     while (sbcs.sbbusy);
-    // Register Access Abstract Command  
+
+    // Register Access Abstract Command - This sets up the DPC?
     riscv_dbg.write_dmi(dm::Command, {8'h0,1'b0,3'h3,1'b0,1'b0,1'b1,1'b1,4'h0,dm::CSR_DPC});
     do riscv_dbg.read_dmi(dm::SBCS, sbcs);
     while (sbcs.sbbusy);
+
     // Resume req. Exiting from debug mode CVA6 will jump at the DPC address.
-    // Ensure haltreq, resumereq and ackhavereset all equal to 0
     riscv_dbg.write_dmi(dm::DMControl, 32'h4000_0001);
     do riscv_dbg.read_dmi(dm::SBCS, sbcs);
     while (sbcs.sbbusy);
+
+    // Ensure haltreq, resumereq and ackhavereset all equal to 0
     riscv_dbg.write_dmi(dm::DMControl, 32'h0000_0001);
     do riscv_dbg.read_dmi(dm::SBCS, sbcs);
     while (sbcs.sbbusy);
-     
+    // *******************************************************
+
+    // *******************************************************
+    // Core 1
+    // *******************************************************
+    // Halt Req
+    // DMStatus gets the HARTID from DMControl. 
+    // Thus the DMControl Write and DMStatus Read have to be done in serial.
+    riscv_dbg.write_dmi(dm::DMControl, 32'h8001_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Wait for CVA6 to be halted
+    do riscv_dbg.read_dmi(dm::DMStatus, dm_status);
+    while (!dm_status[8]);
+
+    // Ensure haltreq, resumereq and ackhavereset all equal to 0      
+    riscv_dbg.write_dmi(dm::DMControl, 32'h0001_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Register Access Abstract Command - This sets up the DPC.
+    riscv_dbg.write_dmi(dm::Command, {8'h0,1'b0,3'h3,1'b0,1'b0,1'b1,1'b1,4'h0,dm::CSR_DPC});
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Resume req. Exiting from debug mode CVA6 will jump at the DPC address.
+    riscv_dbg.write_dmi(dm::DMControl, 32'h4001_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Ensure haltreq, resumereq and ackhavereset all equal to 0
+    riscv_dbg.write_dmi(dm::DMControl, 32'h0001_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+    // *******************************************************
+
+    // *******************************************************
+    // Core 2
+    // *******************************************************
+    // Halt Req
+    // DMStatus gets the HARTID from DMControl. 
+    // Thus the DMControl Write and DMStatus Read have to be done in serial.
+    riscv_dbg.write_dmi(dm::DMControl, 32'h8002_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Wait for CVA6 to be halted
+    do riscv_dbg.read_dmi(dm::DMStatus, dm_status);
+    while (!dm_status[8]);
+
+    // Ensure haltreq, resumereq and ackhavereset all equal to 0      
+    riscv_dbg.write_dmi(dm::DMControl, 32'h0002_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Register Access Abstract Command - This sets up the DPC.
+    riscv_dbg.write_dmi(dm::Command, {8'h0,1'b0,3'h3,1'b0,1'b0,1'b1,1'b1,4'h0,dm::CSR_DPC});
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Resume req. Exiting from debug mode CVA6 will jump at the DPC address.
+    riscv_dbg.write_dmi(dm::DMControl, 32'h4002_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Ensure haltreq, resumereq and ackhavereset all equal to 0
+    riscv_dbg.write_dmi(dm::DMControl, 32'h0002_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+    // *******************************************************
+
+    // *******************************************************
+    // Core 3
+    // *******************************************************
+    // Halt Req
+    // DMStatus gets the HARTID from DMControl. 
+    // Thus the DMControl Write and DMStatus Read have to be done in serial.
+    riscv_dbg.write_dmi(dm::DMControl, 32'h8003_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Wait for CVA6 to be halted
+    do riscv_dbg.read_dmi(dm::DMStatus, dm_status);
+    while (!dm_status[8]);
+
+    // Ensure haltreq, resumereq and ackhavereset all equal to 0      
+    riscv_dbg.write_dmi(dm::DMControl, 32'h0003_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Register Access Abstract Command - This sets up the DPC.
+    riscv_dbg.write_dmi(dm::Command, {8'h0,1'b0,3'h3,1'b0,1'b0,1'b1,1'b1,4'h0,dm::CSR_DPC});
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Resume req. Exiting from debug mode CVA6 will jump at the DPC address.
+    riscv_dbg.write_dmi(dm::DMControl, 32'h4003_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+
+    // Ensure haltreq, resumereq and ackhavereset all equal to 0
+    riscv_dbg.write_dmi(dm::DMControl, 32'h0003_0001);
+    do riscv_dbg.read_dmi(dm::SBCS, sbcs);
+    while (sbcs.sbbusy);
+    // *******************************************************
+
     // Wait till end of computation
     program_loaded = 1;
 
