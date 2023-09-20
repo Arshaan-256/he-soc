@@ -17,7 +17,7 @@ package ariane_soc;
   localparam int unsigned NumSources = 255;
   localparam int unsigned MaxPriority = 7;
 
-  localparam NrSlaves = 4+1; // actually masters, but slaves on the crossbar 
+  localparam NrSlaves = 4+3; // actually masters, but slaves on the crossbar 
   // Slave 0: CVA6-0
   // Slave 1: Debug Module
   // Slave 2: Cluster

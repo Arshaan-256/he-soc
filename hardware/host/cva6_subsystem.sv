@@ -348,6 +348,7 @@ module cva6_subsystem
   `AXI_ASSIGN_FROM_REQ(slave[1],dm_axi_m_req)
   `AXI_ASSIGN_TO_RESP(dm_axi_m_resp,slave[1])
 
+
    
   axi_adapter #(
     .DATA_WIDTH            ( AXI_DATA_WIDTH            ),
@@ -652,10 +653,12 @@ module cva6_subsystem
   end
    
   clint #(
-    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
-    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
-    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
-    .NR_CORES       ( 4                        )
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH          ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH             ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave   ),
+    .lite_req_t     ( ariane_axi_soc::req_slv_t  ),
+    .lite_resp_t    ( ariane_axi_soc::resp_slv_t ),
+    .NR_CORES       ( 4                          )
   ) i_clint (
     .clk_i       ( clk_i          ),
     .rst_ni      ( ndmreset_n     ),
@@ -828,11 +831,11 @@ module cva6_subsystem
   `AXI_ASSIGN_FROM_REQ(slave[4], axi_ariane_req_1)
   `AXI_ASSIGN_TO_RESP(axi_ariane_resp_1, slave[4])
 
-  // `AXI_ASSIGN_FROM_REQ(slave[5], axi_ariane_req_2)
-  // `AXI_ASSIGN_TO_RESP(axi_ariane_resp_2, slave[5])
+  `AXI_ASSIGN_FROM_REQ(slave[5], axi_ariane_req_2)
+  `AXI_ASSIGN_TO_RESP(axi_ariane_resp_2, slave[5])
 
-  // `AXI_ASSIGN_FROM_REQ(slave[6], axi_ariane_req_3)
-  // `AXI_ASSIGN_TO_RESP(axi_ariane_resp_3, slave[6])
+  `AXI_ASSIGN_FROM_REQ(slave[6], axi_ariane_req_3)
+  `AXI_ASSIGN_TO_RESP(axi_ariane_resp_3, slave[6])
 
   ariane #(
     .ArianeCfg  ( ariane_soc::ArianeSocCfg )
@@ -859,40 +862,40 @@ module cva6_subsystem
     .irq_i                ( irqs[3:2]               ), // async signal
     .ipi_i                ( ipi[1]               ), // async signal
     .time_irq_i           ( timer_irq[1]          ), // async signal
-    .debug_req_i          ( debug_req_core[0]         ), // async signal
+    .debug_req_i          ( debug_req_core[1]         ), // async signal
     .axi_req_o            ( axi_ariane_req_1      ),
     .axi_resp_i           ( axi_ariane_resp_1     )
   );
 
-  // ariane #(
-  //   .ArianeCfg  ( ariane_soc::ArianeSocCfg )
-  // ) i_ariane_2 (
-  //   .clk_i                ( clk_i               ),
-  //   .rst_ni               ( rst_ni              ),
-  //   .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
-  //   .hart_id_i            ( 64'd2           ),
-  //   .irq_i                ( irqs[5:4]               ), // async signal
-  //   .ipi_i                ( ipi[2]               ), // async signal
-  //   .time_irq_i           ( timer_irq[2]          ), // async signal
-  //   .debug_req_i          ( debug_req_core[0]         ), // async signal
-  //   .axi_req_o            ( axi_ariane_req_2      ),
-  //   .axi_resp_i           ( axi_ariane_resp_2     )
-  // );
+  ariane #(
+    .ArianeCfg  ( ariane_soc::ArianeSocCfg )
+  ) i_ariane_2 (
+    .clk_i                ( clk_i               ),
+    .rst_ni               ( rst_ni              ),
+    .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
+    .hart_id_i            ( 64'd2           ),
+    .irq_i                ( irqs[5:4]               ), // async signal
+    .ipi_i                ( ipi[2]               ), // async signal
+    .time_irq_i           ( timer_irq[2]          ), // async signal
+    .debug_req_i          ( debug_req_core[2]         ), // async signal
+    .axi_req_o            ( axi_ariane_req_2      ),
+    .axi_resp_i           ( axi_ariane_resp_2     )
+  );
 
-  // ariane #(
-  //   .ArianeCfg  ( ariane_soc::ArianeSocCfg )
-  // ) i_ariane_3 (
-  //   .clk_i                ( clk_i               ),
-  //   .rst_ni               ( rst_ni              ),
-  //   .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
-  //   .hart_id_i            ( 64'd3           ),
-  //   .irq_i                ( irqs[7:6]               ), // async signal
-  //   .ipi_i                ( ipi[3]               ), // async signal
-  //   .time_irq_i           ( timer_irq[3]          ), // async signal
-  //   .debug_req_i          ( debug_req_core[0]         ), // async signal
-  //   .axi_req_o            ( axi_ariane_req_3      ),
-  //   .axi_resp_i           ( axi_ariane_resp_3     )
-  // );
+  ariane #(
+    .ArianeCfg  ( ariane_soc::ArianeSocCfg )
+  ) i_ariane_3 (
+    .clk_i                ( clk_i               ),
+    .rst_ni               ( rst_ni              ),
+    .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
+    .hart_id_i            ( 64'd3           ),
+    .irq_i                ( irqs[7:6]               ), // async signal
+    .ipi_i                ( ipi[3]               ), // async signal
+    .time_irq_i           ( timer_irq[3]          ), // async signal
+    .debug_req_i          ( debug_req_core[3]         ), // async signal
+    .axi_req_o            ( axi_ariane_req_3      ),
+    .axi_resp_i           ( axi_ariane_resp_3     )
+  );
 
   // // ---------------
   // // Core #0
