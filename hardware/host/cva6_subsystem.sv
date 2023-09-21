@@ -825,256 +825,256 @@ module cva6_subsystem
     .mdc             ( )
   );
 
-  `AXI_ASSIGN_FROM_REQ(slave[0], axi_ariane_req_0)
-  `AXI_ASSIGN_TO_RESP(axi_ariane_resp_0, slave[0])
+  // `AXI_ASSIGN_FROM_REQ(slave[0], axi_ariane_req_0)
+  // `AXI_ASSIGN_TO_RESP(axi_ariane_resp_0, slave[0])
 
-  `AXI_ASSIGN_FROM_REQ(slave[4], axi_ariane_req_1)
-  `AXI_ASSIGN_TO_RESP(axi_ariane_resp_1, slave[4])
+  // `AXI_ASSIGN_FROM_REQ(slave[4], axi_ariane_req_1)
+  // `AXI_ASSIGN_TO_RESP(axi_ariane_resp_1, slave[4])
 
-  `AXI_ASSIGN_FROM_REQ(slave[5], axi_ariane_req_2)
-  `AXI_ASSIGN_TO_RESP(axi_ariane_resp_2, slave[5])
+  // `AXI_ASSIGN_FROM_REQ(slave[5], axi_ariane_req_2)
+  // `AXI_ASSIGN_TO_RESP(axi_ariane_resp_2, slave[5])
 
-  `AXI_ASSIGN_FROM_REQ(slave[6], axi_ariane_req_3)
-  `AXI_ASSIGN_TO_RESP(axi_ariane_resp_3, slave[6])
+  // `AXI_ASSIGN_FROM_REQ(slave[6], axi_ariane_req_3)
+  // `AXI_ASSIGN_TO_RESP(axi_ariane_resp_3, slave[6])
 
-  ariane #(
-    .ArianeCfg  ( ariane_soc::ArianeSocCfg )
-  ) i_ariane_0 (
-    .clk_i                ( clk_i               ),
-    .rst_ni               ( rst_ni              ),
-    .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
-    .hart_id_i            ( 64'd0           ),
-    .irq_i                ( irqs[1:0]               ), // async signal
-    .ipi_i                ( ipi[0]               ), // async signal
-    .time_irq_i           ( timer_irq[0]          ), // async signal
-    .debug_req_i          ( debug_req_core[0]         ), // async signal
-    .axi_req_o            ( axi_ariane_req_0      ),
-    .axi_resp_i           ( axi_ariane_resp_0     )
+  // ariane #(
+  //   .ArianeCfg  ( ariane_soc::ArianeSocCfg )
+  // ) i_ariane_0 (
+  //   .clk_i                ( clk_i               ),
+  //   .rst_ni               ( rst_ni              ),
+  //   .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
+  //   .hart_id_i            ( 64'd0           ),
+  //   .irq_i                ( irqs[1:0]               ), // async signal
+  //   .ipi_i                ( ipi[0]               ), // async signal
+  //   .time_irq_i           ( timer_irq[0]          ), // async signal
+  //   .debug_req_i          ( debug_req_core[0]         ), // async signal
+  //   .axi_req_o            ( axi_ariane_req_0      ),
+  //   .axi_resp_i           ( axi_ariane_resp_0     )
+  // );
+
+  // ariane #(
+  //   .ArianeCfg  ( ariane_soc::ArianeSocCfg )
+  // ) i_ariane_1 (
+  //   .clk_i                ( clk_i               ),
+  //   .rst_ni               ( rst_ni              ),
+  //   .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
+  //   .hart_id_i            ( 64'd1           ),
+  //   .irq_i                ( irqs[3:2]               ), // async signal
+  //   .ipi_i                ( ipi[1]               ), // async signal
+  //   .time_irq_i           ( timer_irq[1]          ), // async signal
+  //   .debug_req_i          ( debug_req_core[1]         ), // async signal
+  //   .axi_req_o            ( axi_ariane_req_1      ),
+  //   .axi_resp_i           ( axi_ariane_resp_1     )
+  // );
+
+  // ariane #(
+  //   .ArianeCfg  ( ariane_soc::ArianeSocCfg )
+  // ) i_ariane_2 (
+  //   .clk_i                ( clk_i               ),
+  //   .rst_ni               ( rst_ni              ),
+  //   .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
+  //   .hart_id_i            ( 64'd2           ),
+  //   .irq_i                ( irqs[5:4]               ), // async signal
+  //   .ipi_i                ( ipi[2]               ), // async signal
+  //   .time_irq_i           ( timer_irq[2]          ), // async signal
+  //   .debug_req_i          ( debug_req_core[2]         ), // async signal
+  //   .axi_req_o            ( axi_ariane_req_2      ),
+  //   .axi_resp_i           ( axi_ariane_resp_2     )
+  // );
+
+  // ariane #(
+  //   .ArianeCfg  ( ariane_soc::ArianeSocCfg )
+  // ) i_ariane_3 (
+  //   .clk_i                ( clk_i               ),
+  //   .rst_ni               ( rst_ni              ),
+  //   .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
+  //   .hart_id_i            ( 64'd3           ),
+  //   .irq_i                ( irqs[7:6]               ), // async signal
+  //   .ipi_i                ( ipi[3]               ), // async signal
+  //   .time_irq_i           ( timer_irq[3]          ), // async signal
+  //   .debug_req_i          ( debug_req_core[3]         ), // async signal
+  //   .axi_req_o            ( axi_ariane_req_3      ),
+  //   .axi_resp_i           ( axi_ariane_resp_3     )
+  // );
+
+  // ---------------
+  // Core #0
+  // ---------------
+
+  cva6_synth_wrap #(
+    .LOG_DEPTH (1)
+  ) i_ariane_wrap_0 (
+    .clk_i                ( cva6_clk_i                  ),
+    .rst_ni               ( cva6_rst_ni                 ),
+    .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
+    .hart_id_i            ( 64'd0                       ),
+    .irq_i                ( irqs[1:0]                   ), // async signal
+    .ipi_i                ( ipi[0]                      ), // async signal
+    .time_irq_i           ( timer_irq[0]                ), // async signal
+    .debug_req_i          ( debug_req_core[0]              ), // async signal
+    .data_master_aw_wptr_o( cva6_axi_master_dst_0.aw_wptr ),
+    .data_master_aw_data_o( cva6_axi_master_dst_0.aw_data ), 
+    .data_master_aw_rptr_i( cva6_axi_master_dst_0.aw_rptr ),
+    .data_master_ar_wptr_o( cva6_axi_master_dst_0.ar_wptr ),
+    .data_master_ar_data_o( cva6_axi_master_dst_0.ar_data ),
+    .data_master_ar_rptr_i( cva6_axi_master_dst_0.ar_rptr ),
+    .data_master_w_wptr_o ( cva6_axi_master_dst_0.w_wptr  ),
+    .data_master_w_data_o ( cva6_axi_master_dst_0.w_data  ),
+    .data_master_w_rptr_i ( cva6_axi_master_dst_0.w_rptr  ),
+    .data_master_r_wptr_i ( cva6_axi_master_dst_0.r_wptr  ),
+    .data_master_r_data_i ( cva6_axi_master_dst_0.r_data  ),
+    .data_master_r_rptr_o ( cva6_axi_master_dst_0.r_rptr  ),
+    .data_master_b_wptr_i ( cva6_axi_master_dst_0.b_wptr  ),
+    .data_master_b_data_i ( cva6_axi_master_dst_0.b_data  ),
+    .data_master_b_rptr_o ( cva6_axi_master_dst_0.b_rptr  )
   );
 
-  ariane #(
-    .ArianeCfg  ( ariane_soc::ArianeSocCfg )
-  ) i_ariane_1 (
-    .clk_i                ( clk_i               ),
-    .rst_ni               ( rst_ni              ),
-    .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
-    .hart_id_i            ( 64'd1           ),
-    .irq_i                ( irqs[3:2]               ), // async signal
-    .ipi_i                ( ipi[1]               ), // async signal
-    .time_irq_i           ( timer_irq[1]          ), // async signal
-    .debug_req_i          ( debug_req_core[1]         ), // async signal
-    .axi_req_o            ( axi_ariane_req_1      ),
-    .axi_resp_i           ( axi_ariane_resp_1     )
+  axi_cdc_dst_intf #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
+    .LOG_DEPTH      ( 1                   )
+  ) cva6_0_to_xbar (
+    .src(cva6_axi_master_dst_0),
+    .dst_clk_i(clk_i),
+    .dst_rst_ni(ndmreset_n),
+    .dst(slave[0])
   );
 
-  ariane #(
-    .ArianeCfg  ( ariane_soc::ArianeSocCfg )
-  ) i_ariane_2 (
-    .clk_i                ( clk_i               ),
-    .rst_ni               ( rst_ni              ),
-    .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
-    .hart_id_i            ( 64'd2           ),
-    .irq_i                ( irqs[5:4]               ), // async signal
-    .ipi_i                ( ipi[2]               ), // async signal
-    .time_irq_i           ( timer_irq[2]          ), // async signal
-    .debug_req_i          ( debug_req_core[2]         ), // async signal
-    .axi_req_o            ( axi_ariane_req_2      ),
-    .axi_resp_i           ( axi_ariane_resp_2     )
+  // ---------------
+  // Core #1
+  // ---------------
+
+  cva6_synth_wrap #(
+    .LOG_DEPTH (1)
+  ) i_ariane_wrap_1 (
+    .clk_i                ( cva6_clk_i                  ),
+    .rst_ni               ( cva6_rst_ni                 ),
+    .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
+    .hart_id_i            ( 64'd1                       ),
+    .irq_i                ( irqs[3:2]                   ), // async signal
+    .ipi_i                ( ipi[1]                      ), // async signal
+    .time_irq_i           ( timer_irq[1]                ), // async signal
+    .debug_req_i          ( debug_req_core[1]              ), // async signal
+    .data_master_aw_wptr_o( cva6_axi_master_dst_1.aw_wptr ),
+    .data_master_aw_data_o( cva6_axi_master_dst_1.aw_data ), 
+    .data_master_aw_rptr_i( cva6_axi_master_dst_1.aw_rptr ),
+    .data_master_ar_wptr_o( cva6_axi_master_dst_1.ar_wptr ),
+    .data_master_ar_data_o( cva6_axi_master_dst_1.ar_data ),
+    .data_master_ar_rptr_i( cva6_axi_master_dst_1.ar_rptr ),
+    .data_master_w_wptr_o ( cva6_axi_master_dst_1.w_wptr  ),
+    .data_master_w_data_o ( cva6_axi_master_dst_1.w_data  ),
+    .data_master_w_rptr_i ( cva6_axi_master_dst_1.w_rptr  ),
+    .data_master_r_wptr_i ( cva6_axi_master_dst_1.r_wptr  ),
+    .data_master_r_data_i ( cva6_axi_master_dst_1.r_data  ),
+    .data_master_r_rptr_o ( cva6_axi_master_dst_1.r_rptr  ),
+    .data_master_b_wptr_i ( cva6_axi_master_dst_1.b_wptr  ),
+    .data_master_b_data_i ( cva6_axi_master_dst_1.b_data  ),
+    .data_master_b_rptr_o ( cva6_axi_master_dst_1.b_rptr  )
   );
 
-  ariane #(
-    .ArianeCfg  ( ariane_soc::ArianeSocCfg )
-  ) i_ariane_3 (
-    .clk_i                ( clk_i               ),
-    .rst_ni               ( rst_ni              ),
-    .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
-    .hart_id_i            ( 64'd3           ),
-    .irq_i                ( irqs[7:6]               ), // async signal
-    .ipi_i                ( ipi[3]               ), // async signal
-    .time_irq_i           ( timer_irq[3]          ), // async signal
-    .debug_req_i          ( debug_req_core[3]         ), // async signal
-    .axi_req_o            ( axi_ariane_req_3      ),
-    .axi_resp_i           ( axi_ariane_resp_3     )
+  axi_cdc_dst_intf #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
+    .LOG_DEPTH      ( 1                   )
+  ) cva6_1_to_xbar (
+    .src(cva6_axi_master_dst_1),
+    .dst_clk_i(clk_i),
+    .dst_rst_ni(ndmreset_n),
+    .dst(slave[4])
+  );
+
+  // ---------------
+  // Core #2
+  // ---------------
+
+  cva6_synth_wrap #(
+    .LOG_DEPTH (1)
+  ) i_ariane_wrap_2 (
+    .clk_i                ( cva6_clk_i                  ),
+    .rst_ni               ( cva6_rst_ni                 ),
+    .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
+    .hart_id_i            ( 64'd2                       ),
+    .irq_i                ( irqs[5:4]                   ), // async signal
+    .ipi_i                ( ipi[2]                      ), // async signal
+    .time_irq_i           ( timer_irq[2]                ), // async signal
+    .debug_req_i          ( debug_req_core[2]              ), // async signal
+    .data_master_aw_wptr_o( cva6_axi_master_dst_2.aw_wptr ),
+    .data_master_aw_data_o( cva6_axi_master_dst_2.aw_data ), 
+    .data_master_aw_rptr_i( cva6_axi_master_dst_2.aw_rptr ),
+    .data_master_ar_wptr_o( cva6_axi_master_dst_2.ar_wptr ),
+    .data_master_ar_data_o( cva6_axi_master_dst_2.ar_data ),
+    .data_master_ar_rptr_i( cva6_axi_master_dst_2.ar_rptr ),
+    .data_master_w_wptr_o ( cva6_axi_master_dst_2.w_wptr  ),
+    .data_master_w_data_o ( cva6_axi_master_dst_2.w_data  ),
+    .data_master_w_rptr_i ( cva6_axi_master_dst_2.w_rptr  ),
+    .data_master_r_wptr_i ( cva6_axi_master_dst_2.r_wptr  ),
+    .data_master_r_data_i ( cva6_axi_master_dst_2.r_data  ),
+    .data_master_r_rptr_o ( cva6_axi_master_dst_2.r_rptr  ),
+    .data_master_b_wptr_i ( cva6_axi_master_dst_2.b_wptr  ),
+    .data_master_b_data_i ( cva6_axi_master_dst_2.b_data  ),
+    .data_master_b_rptr_o ( cva6_axi_master_dst_2.b_rptr  )
+  );
+
+  axi_cdc_dst_intf #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
+    .LOG_DEPTH      ( 1                   )
+  ) cva6_2_to_xbar (
+    .src(cva6_axi_master_dst_2),
+    .dst_clk_i(clk_i),
+    .dst_rst_ni(ndmreset_n),
+    .dst(slave[5])
   );
 
   // // ---------------
-  // // Core #0
+  // // Core #3
   // // ---------------
 
-  // cva6_synth_wrap #(
-  //   .LOG_DEPTH (1)
-  // ) i_ariane_wrap_0 (
-  //   .clk_i                ( cva6_clk_i                  ),
-  //   .rst_ni               ( cva6_rst_ni                 ),
-  //   .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
-  //   .hart_id_i            ( '0                          ),
-  //   .irq_i                ( irqs[1:0]                   ), // async signal
-  //   .ipi_i                ( ipi[0]                      ), // async signal
-  //   .time_irq_i           ( timer_irq[0]                ), // async signal
-  //   .debug_req_i          ( debug_req_core[0]              ), // async signal
-  //   .data_master_aw_wptr_o( cva6_axi_master_dst_0.aw_wptr ),
-  //   .data_master_aw_data_o( cva6_axi_master_dst_0.aw_data ), 
-  //   .data_master_aw_rptr_i( cva6_axi_master_dst_0.aw_rptr ),
-  //   .data_master_ar_wptr_o( cva6_axi_master_dst_0.ar_wptr ),
-  //   .data_master_ar_data_o( cva6_axi_master_dst_0.ar_data ),
-  //   .data_master_ar_rptr_i( cva6_axi_master_dst_0.ar_rptr ),
-  //   .data_master_w_wptr_o ( cva6_axi_master_dst_0.w_wptr  ),
-  //   .data_master_w_data_o ( cva6_axi_master_dst_0.w_data  ),
-  //   .data_master_w_rptr_i ( cva6_axi_master_dst_0.w_rptr  ),
-  //   .data_master_r_wptr_i ( cva6_axi_master_dst_0.r_wptr  ),
-  //   .data_master_r_data_i ( cva6_axi_master_dst_0.r_data  ),
-  //   .data_master_r_rptr_o ( cva6_axi_master_dst_0.r_rptr  ),
-  //   .data_master_b_wptr_i ( cva6_axi_master_dst_0.b_wptr  ),
-  //   .data_master_b_data_i ( cva6_axi_master_dst_0.b_data  ),
-  //   .data_master_b_rptr_o ( cva6_axi_master_dst_0.b_rptr  )
-  // );
+  cva6_synth_wrap #(
+    .LOG_DEPTH (1)
+  ) i_ariane_wrap_3 (
+    .clk_i                ( cva6_clk_i                  ),
+    .rst_ni               ( cva6_rst_ni                 ),
+    .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
+    .hart_id_i            ( 64'd3                       ),
+    .irq_i                ( irqs[7:6]                   ), // async signal
+    .ipi_i                ( ipi[3]                      ), // async signal
+    .time_irq_i           ( timer_irq[3]                ), // async signal
+    .debug_req_i          ( debug_req_core[3]             ), // async signal
+    .data_master_aw_wptr_o( cva6_axi_master_dst_3.aw_wptr ),
+    .data_master_aw_data_o( cva6_axi_master_dst_3.aw_data ), 
+    .data_master_aw_rptr_i( cva6_axi_master_dst_3.aw_rptr ),
+    .data_master_ar_wptr_o( cva6_axi_master_dst_3.ar_wptr ),
+    .data_master_ar_data_o( cva6_axi_master_dst_3.ar_data ),
+    .data_master_ar_rptr_i( cva6_axi_master_dst_3.ar_rptr ),
+    .data_master_w_wptr_o ( cva6_axi_master_dst_3.w_wptr  ),
+    .data_master_w_data_o ( cva6_axi_master_dst_3.w_data  ),
+    .data_master_w_rptr_i ( cva6_axi_master_dst_3.w_rptr  ),
+    .data_master_r_wptr_i ( cva6_axi_master_dst_3.r_wptr  ),
+    .data_master_r_data_i ( cva6_axi_master_dst_3.r_data  ),
+    .data_master_r_rptr_o ( cva6_axi_master_dst_3.r_rptr  ),
+    .data_master_b_wptr_i ( cva6_axi_master_dst_3.b_wptr  ),
+    .data_master_b_data_i ( cva6_axi_master_dst_3.b_data  ),
+    .data_master_b_rptr_o ( cva6_axi_master_dst_3.b_rptr  )
+  );
 
-  // axi_cdc_dst_intf #(
-  //   .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
-  //   .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
-  //   .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
-  //   .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
-  //   .LOG_DEPTH      ( 1                   )
-  // ) cva6_0_to_xbar (
-  //   .src(cva6_axi_master_dst_0),
-  //   .dst_clk_i(clk_i),
-  //   .dst_rst_ni(ndmreset_n),
-  //   .dst(slave[0])
-  // );
-
-  // // ---------------
-  // // Core #1
-  // // ---------------
-
-  // cva6_synth_wrap #(
-  //   .LOG_DEPTH (1)
-  // ) i_ariane_wrap_1 (
-  //   .clk_i                ( cva6_clk_i                  ),
-  //   .rst_ni               ( cva6_rst_ni                 ),
-  //   .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
-  //   .hart_id_i            (  1                          ),
-  //   .irq_i                ( irqs[3:2]                   ), // async signal
-  //   .ipi_i                ( ipi[1]                      ), // async signal
-  //   .time_irq_i           ( timer_irq[1]                ), // async signal
-  //   .debug_req_i          ( debug_req_core[1]              ), // async signal
-  //   .data_master_aw_wptr_o( cva6_axi_master_dst_1.aw_wptr ),
-  //   .data_master_aw_data_o( cva6_axi_master_dst_1.aw_data ), 
-  //   .data_master_aw_rptr_i( cva6_axi_master_dst_1.aw_rptr ),
-  //   .data_master_ar_wptr_o( cva6_axi_master_dst_1.ar_wptr ),
-  //   .data_master_ar_data_o( cva6_axi_master_dst_1.ar_data ),
-  //   .data_master_ar_rptr_i( cva6_axi_master_dst_1.ar_rptr ),
-  //   .data_master_w_wptr_o ( cva6_axi_master_dst_1.w_wptr  ),
-  //   .data_master_w_data_o ( cva6_axi_master_dst_1.w_data  ),
-  //   .data_master_w_rptr_i ( cva6_axi_master_dst_1.w_rptr  ),
-  //   .data_master_r_wptr_i ( cva6_axi_master_dst_1.r_wptr  ),
-  //   .data_master_r_data_i ( cva6_axi_master_dst_1.r_data  ),
-  //   .data_master_r_rptr_o ( cva6_axi_master_dst_1.r_rptr  ),
-  //   .data_master_b_wptr_i ( cva6_axi_master_dst_1.b_wptr  ),
-  //   .data_master_b_data_i ( cva6_axi_master_dst_1.b_data  ),
-  //   .data_master_b_rptr_o ( cva6_axi_master_dst_1.b_rptr  )
-  // );
-
-  // axi_cdc_dst_intf #(
-  //   .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
-  //   .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
-  //   .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
-  //   .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
-  //   .LOG_DEPTH      ( 1                   )
-  // ) cva6_1_to_xbar (
-  //   .src(cva6_axi_master_dst_1),
-  //   .dst_clk_i(clk_i),
-  //   .dst_rst_ni(ndmreset_n),
-  //   .dst(slave[4])
-  // );
-
-  // // ---------------
-  // // Core #2
-  // // ---------------
-
-  // cva6_synth_wrap #(
-  //   .LOG_DEPTH (1)
-  // ) i_ariane_wrap_2 (
-  //   .clk_i                ( cva6_clk_i                  ),
-  //   .rst_ni               ( cva6_rst_ni                 ),
-  //   .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
-  //   .hart_id_i            ( 2                           ),
-  //   .irq_i                ( irqs[5:4]                   ), // async signal
-  //   .ipi_i                ( ipi[2]                      ), // async signal
-  //   .time_irq_i           ( timer_irq[2]                ), // async signal
-  //   .debug_req_i          ( debug_req_core[2]              ), // async signal
-  //   .data_master_aw_wptr_o( cva6_axi_master_dst_2.aw_wptr ),
-  //   .data_master_aw_data_o( cva6_axi_master_dst_2.aw_data ), 
-  //   .data_master_aw_rptr_i( cva6_axi_master_dst_2.aw_rptr ),
-  //   .data_master_ar_wptr_o( cva6_axi_master_dst_2.ar_wptr ),
-  //   .data_master_ar_data_o( cva6_axi_master_dst_2.ar_data ),
-  //   .data_master_ar_rptr_i( cva6_axi_master_dst_2.ar_rptr ),
-  //   .data_master_w_wptr_o ( cva6_axi_master_dst_2.w_wptr  ),
-  //   .data_master_w_data_o ( cva6_axi_master_dst_2.w_data  ),
-  //   .data_master_w_rptr_i ( cva6_axi_master_dst_2.w_rptr  ),
-  //   .data_master_r_wptr_i ( cva6_axi_master_dst_2.r_wptr  ),
-  //   .data_master_r_data_i ( cva6_axi_master_dst_2.r_data  ),
-  //   .data_master_r_rptr_o ( cva6_axi_master_dst_2.r_rptr  ),
-  //   .data_master_b_wptr_i ( cva6_axi_master_dst_2.b_wptr  ),
-  //   .data_master_b_data_i ( cva6_axi_master_dst_2.b_data  ),
-  //   .data_master_b_rptr_o ( cva6_axi_master_dst_2.b_rptr  )
-  // );
-
-  // axi_cdc_dst_intf #(
-  //   .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
-  //   .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
-  //   .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
-  //   .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
-  //   .LOG_DEPTH      ( 1                   )
-  // ) cva6_2_to_xbar (
-  //   .src(cva6_axi_master_dst_2),
-  //   .dst_clk_i(clk_i),
-  //   .dst_rst_ni(ndmreset_n),
-  //   .dst(slave[5])
-  // );
-
-  // // // ---------------
-  // // // Core #3
-  // // // ---------------
-
-  // cva6_synth_wrap #(
-  //   .LOG_DEPTH (1)
-  // ) i_ariane_wrap_3 (
-  //   .clk_i                ( cva6_clk_i                  ),
-  //   .rst_ni               ( cva6_rst_ni                 ),
-  //   .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
-  //   .hart_id_i            ( 3                           ),
-  //   .irq_i                ( irqs[7:6]                   ), // async signal
-  //   .ipi_i                ( ipi[3]                      ), // async signal
-  //   .time_irq_i           ( timer_irq[3]                ), // async signal
-  //   .debug_req_i          ( debug_req_core[3]             ), // async signal
-  //   .data_master_aw_wptr_o( cva6_axi_master_dst_3.aw_wptr ),
-  //   .data_master_aw_data_o( cva6_axi_master_dst_3.aw_data ), 
-  //   .data_master_aw_rptr_i( cva6_axi_master_dst_3.aw_rptr ),
-  //   .data_master_ar_wptr_o( cva6_axi_master_dst_3.ar_wptr ),
-  //   .data_master_ar_data_o( cva6_axi_master_dst_3.ar_data ),
-  //   .data_master_ar_rptr_i( cva6_axi_master_dst_3.ar_rptr ),
-  //   .data_master_w_wptr_o ( cva6_axi_master_dst_3.w_wptr  ),
-  //   .data_master_w_data_o ( cva6_axi_master_dst_3.w_data  ),
-  //   .data_master_w_rptr_i ( cva6_axi_master_dst_3.w_rptr  ),
-  //   .data_master_r_wptr_i ( cva6_axi_master_dst_3.r_wptr  ),
-  //   .data_master_r_data_i ( cva6_axi_master_dst_3.r_data  ),
-  //   .data_master_r_rptr_o ( cva6_axi_master_dst_3.r_rptr  ),
-  //   .data_master_b_wptr_i ( cva6_axi_master_dst_3.b_wptr  ),
-  //   .data_master_b_data_i ( cva6_axi_master_dst_3.b_data  ),
-  //   .data_master_b_rptr_o ( cva6_axi_master_dst_3.b_rptr  )
-  // );
-
-  // axi_cdc_dst_intf #(
-  //   .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
-  //   .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
-  //   .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
-  //   .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
-  //   .LOG_DEPTH      ( 1                   )
-  // ) cva6_3_to_xbar (
-  //   .src(cva6_axi_master_dst_3),
-  //   .dst_clk_i(clk_i),
-  //   .dst_rst_ni(ndmreset_n),
-  //   .dst(slave[6])
-  // );
+  axi_cdc_dst_intf #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
+    .LOG_DEPTH      ( 1                   )
+  ) cva6_3_to_xbar (
+    .src(cva6_axi_master_dst_3),
+    .dst_clk_i(clk_i),
+    .dst_rst_ni(ndmreset_n),
+    .dst(slave[6])
+  );
    
 endmodule
