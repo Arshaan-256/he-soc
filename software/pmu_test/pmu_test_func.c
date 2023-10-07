@@ -215,11 +215,11 @@ uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS,
   write_32b(STATUS_BASE_ADDR, 1);
 
   if (DEBUG >= 1)
-    printf("Writing Bubble Sort to PMU!\n");
+    printf("Writing BubbleSort to PMU-ISPM!\n");
   error_count += test_spm(ISPM_BASE_ADDRESS, program_size, program);
 
   if (DEBUG >= 1)
-    printf("Writing array of length %0d to DSPM!\n", len);
+    printf("Writing array of length %0d to PMU-DSPM!\n", len);
   error_count += test_spm_rand(DSPM_BASE_ADDRESS, len);
 
   read_32b_regs(DSPM_BASE_ADDRESS, len, cva6_val, 0x4);
