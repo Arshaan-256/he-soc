@@ -173,6 +173,7 @@ uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS,
                                     uint32_t len, 
                                     uint32_t DEBUG) {
   uint32_t program[] = {
+    0x33,        // The first instruction to the core is discarded so it must be NOP.
     0x00000000,   // lui x1, (ARR_BASE >> 12)
     0x00000000,   // addi x1, x1, (ARR_BASE && 0xFFF)
     0x00000000,   // addi x2, x1, (ARR_SIZE-1)*4
@@ -180,7 +181,7 @@ uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS,
     0x2b3,
     0x32203,
     0x432183,
-    0x41d863,
+    0x41f863,
     0x332023,
     0x432223,
     0x100293,
@@ -195,79 +196,87 @@ uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS,
 
   uint32_t error_count = 0;
   uint32_t instruction;
-  uint32_t val[len];
-  uint32_t rval[len];
+  uint32_t cva6_val[len];
+  uint32_t ibex_val[len];
   uint32_t program_size = sizeof(program) / sizeof(program[0]); 
   
   // encodeLUI (uint32_t rd, uint32_t imm)
-  instruction = encodeLUI(1, DSPM_BASE_ADDRESS>>12, DEBUG);
-  program[0] = instruction;
-  // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(1, 1, DSPM_BASE_ADDRESS & 0xFFF, DEBUG);
+  instruction = encodeLUI(1, DSPM_BASE_ADDRESS>>12, (DEBUG >= 1));
   program[1] = instruction;
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(2,1,(len-1)*4, DEBUG);
+  instruction = encodeADDI(1, 1, DSPM_BASE_ADDRESS & 0xFFF, (DEBUG >= 1));
   program[2] = instruction;
+  // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
+  instruction = encodeADDI(2,1,(len-1)*4, (DEBUG >= 1));
+  program[3] = instruction;
 
-  if (DEBUG)
+  if (DEBUG >= 1)
     printf("Halt PMU core before writing to ISPM!\n");
   write_32b(STATUS_BASE_ADDR, 1);
 
-  if (DEBUG)
+  if (DEBUG >= 1)
     printf("Writing Bubble Sort to PMU!\n");
   error_count += test_spm(ISPM_BASE_ADDRESS, program_size, program);
 
-  if (DEBUG)
+  if (DEBUG >= 1)
     printf("Writing array of length %0d to DSPM!\n", len);
   error_count += test_spm_rand(DSPM_BASE_ADDRESS, len);
 
-  if (DEBUG)
-    printf("Start PMU core!\n");
-  write_32b(STATUS_BASE_ADDR, 0);
-
-  read_32b_regs(DSPM_BASE_ADDRESS, len, val, 0x4);
-  if (DEBUG) {
+  read_32b_regs(DSPM_BASE_ADDRESS, len, cva6_val, 0x4);
+  if (DEBUG >= 2) {
     printf("Print input array!\n");
     for (uint32_t i=0; i<len; i++) {
-      printf("%0d\n",val[i]);
+      printf("%x: %0d\n",&cva6_val[i], cva6_val[i]);
     }
   }
 
+  if (DEBUG >= 1)
+    printf("Start PMU core!\n");
+  write_32b(STATUS_BASE_ADDR, 0);
+
   // Sort array, this is golden output.
-  bubble_sort(val, len);
+  bubble_sort(cva6_val, len);
+  if (DEBUG >= 2) {
+    printf("Print golden array!\n");
+    for (uint32_t i=0; i<len; i++) {
+      printf("%x: %0d\n",&cva6_val[i], cva6_val[i]);
+    }
+  }
 
   // This keeps CVA6 busy so that the PMU core gets time to finish sorting.
-  array_traversal(10*len);
+  if (DEBUG < 2) {
+    uint32_t out = array_traversal(20*len);
+  }
 
-  read_32b_regs(DSPM_BASE_ADDRESS, len, rval, 0x4);
-  if (DEBUG) {
+  read_32b_regs(DSPM_BASE_ADDRESS, len, ibex_val, 0x4);
+  if (DEBUG >= 2) {
     printf("Output array!\n");
     for (uint32_t i=0; i<len; i++) {
-      printf("%0d\n",rval[i]);
+      printf("%x: %0d\n",&ibex_val[i], ibex_val[i]);
     }
   }
 
   for (uint32_t i=0; i<len; i++) {
-    if (val[i] != rval[i]) {
+    if (cva6_val[i] != ibex_val[i]) {
       error_count += 1;
     }
   }
   return error_count;
 }
 
-void bubble_sort (int *array, int len) {
+void bubble_sort (uint32_t *array, uint32_t len) {
   // loop to access each array element
-  for (int step = 0; step < len - 1; ++step) {
+  for (uint32_t step = 0; step < len - 1; ++step) {
     // check if swapping occurs  
-    int swapped = 0;
+    uint32_t swapped = 0;
     // loop to compare array elements
-    for (int i = 0; i < len - step - 1; ++i) {
+    for (uint32_t i = 0; i < len - step - 1; ++i) {
       // compare two array elements
       // change > to < to sort in descending order
       if (array[i] > array[i + 1]) {
         // swapping occurs if elements
         // are not in the intended order
-        int temp = array[i];
+        uint32_t temp = array[i];
         array[i] = array[i + 1];
         array[i + 1] = temp;
         swapped = 1;

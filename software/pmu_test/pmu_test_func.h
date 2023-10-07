@@ -84,7 +84,7 @@ uint32_t test_spm(uint64_t base_addr, uint32_t num_rw, uint32_t val[]);
 uint32_t test_spm_rand(uint64_t base_addr, uint32_t num_rw);
 
 // BubbleSort
-void bubble_sort (int *array, int len);
+void bubble_sort (uint32_t *array, uint32_t len);
 uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS, 
                                     uint32_t DSPM_BASE_ADDRESS,
                                     uint32_t STATUS_BASE_ADDR, 
