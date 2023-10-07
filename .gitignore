@@ -21,10 +21,11 @@ hardware/Bender.local
 hardware/work
 hardware/hyperram*.slm
 hardware/*.riscv
-hardware/fpga/alsaqr/alsaqr.cache
-hardware/fpga/alsaqr/alsaqr.hw
-hardware/fpga/alsaqr/alsaqr.runs
-hardware/fpga/alsaqr/alsaqr.xpr
+hardware/fpga/alsaqr/*.gen
+hardware/fpga/alsaqr/*.cache
+hardware/fpga/alsaqr/*.hw
+hardware/fpga/alsaqr/*.runs
+hardware/fpga/alsaqr/*.xpr
 hardware/fpga/alsaqr/tcl/ips/*/*.cache
 hardware/fpga/alsaqr/tcl/ips/*/*.gen
 hardware/fpga/alsaqr/tcl/ips/*/*.hw
@@ -34,9 +35,8 @@ hardware/fpga/alsaqr/tcl/ips/*/*.srcs
 hardware/fpga/alsaqr/tcl/ips/*/*.xpr
 hardware/fpga/vivado_*.str
 hardware/fpga/.tmpCRC
-hardware/Bender.lock
-hardware/compile.tcl
 hardware/.bender
+hardware/compile.tcl
 build/
 *.vcd
 *.log
