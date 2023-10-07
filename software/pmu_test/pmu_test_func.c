@@ -173,7 +173,7 @@ uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS,
                                     uint32_t len, 
                                     uint32_t DEBUG) {
   uint32_t program[] = {
-    0x33,        // The first instruction to the core is discarded so it must be NOP.
+    0x33,         // The first instruction to the core is discarded so it must be NOP.
     0x00000000,   // lui x1, (ARR_BASE >> 12)
     0x00000000,   // addi x1, x1, (ARR_BASE && 0xFFF)
     0x00000000,   // addi x2, x1, (ARR_SIZE-1)*4
