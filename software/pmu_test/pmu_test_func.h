@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "riscv_encoder_instr.c"
 
 // *********************************************************************
 // Macros and Defines
@@ -18,7 +19,7 @@
 #define NUM_DATA 100
 
 // For the array traversal
-#define NUM_ELEMENT 100
+#define NUM_ELEMENT 1000
 
 // Counter Bundle
 typedef struct {
@@ -37,6 +38,10 @@ typedef struct {
 // *********************************************************************
 // Function Prototypes
 // *********************************************************************
+// Macro convert string to binary.
+#define Bin(x) S_to_binary_(#x)
+uint32_t S_to_binary_(const char *s);
+
 // The AXI4-Lite interconnect is 32bit.
 // Can only read-write to 32bits at a time.
 #define read_32b(addr)         (*(volatile uint32_t *)(long)(addr))
@@ -61,7 +66,7 @@ counter_b_t read_counter_b(uint64_t base_addr);
 void write_counter_b(uint64_t base_addr, counter_b_t counter_b);
 
 // Function to test read and writes to counter bundles.
-// This test will make `num_rw` number of writes, from array `val[]` (of type `counter_b_t`),  and then reads from the counter bundles; starting from addreses `base_addr`.
+// This test will make `num_rw` number of writes, from array `val[]` (of type `counter_b_t`), and then reads from the counter bundles; starting from address `base_addr`.
 // For each mismatch it increments the error counter and then returns it.
 // A return of 0 indicates that the test successfully passed.
 uint32_t test_counter_bundle(uint64_t base_addr, uint32_t num_rw, uint32_t bundle_size, counter_b_t val[]);
@@ -77,3 +82,11 @@ uint32_t array_traversal(uint32_t len);
 uint32_t test_spm(uint64_t base_addr, uint32_t num_rw, uint32_t val[]);
 // This function generates a random array of size `num_rw` (using `my_rand()`) and then calls `test_spm`. 
 uint32_t test_spm_rand(uint64_t base_addr, uint32_t num_rw);
+
+// BubbleSort
+void bubble_sort (int *array, int len);
+uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS, 
+                                    uint32_t DSPM_BASE_ADDRESS,
+                                    uint32_t STATUS_BASE_ADDR, 
+                                    uint32_t len, 
+                                    uint32_t DEBUG);

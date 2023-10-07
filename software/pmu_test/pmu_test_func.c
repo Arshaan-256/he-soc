@@ -1,5 +1,14 @@
 #include "pmu_test_func.h"
 
+uint32_t S_to_binary_(const char *s) {
+  uint32_t i = 0;
+  while (*s) {
+          i <<= 1;
+          i += *s++ - '0';
+  }
+  return i;
+}
+
 uint32_t my_rand(uint32_t seed) {
   uint32_t a = 1103515245;
   uint32_t c = 12345;
@@ -156,4 +165,118 @@ uint32_t test_spm_rand(uint64_t base_addr, uint32_t num_rw) {
   }
 
   return test_spm(base_addr, num_rw, rand_val);
+}
+
+uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS, 
+                                    uint32_t DSPM_BASE_ADDRESS,
+                                    uint32_t STATUS_BASE_ADDR, 
+                                    uint32_t len, 
+                                    uint32_t DEBUG) {
+  uint32_t program[] = {
+    0x00000000,   // lui x1, (ARR_BASE >> 12)
+    0x00000000,   // addi x1, x1, (ARR_BASE && 0xFFF)
+    0x00000000,   // addi x2, x1, (ARR_SIZE-1)*4
+    0x8333,
+    0x2b3,
+    0x32203,
+    0x432183,
+    0x41d863,
+    0x332023,
+    0x432223,
+    0x100293,
+    0x430313,
+    0xfe2312e3,
+    0x28663,
+    0xffc10113,
+    0xfc1118e3,
+    0x33,
+    0xfe000ee3
+  };
+
+  uint32_t error_count = 0;
+  uint32_t instruction;
+  uint32_t val[len];
+  uint32_t rval[len];
+  uint32_t program_size = sizeof(program) / sizeof(program[0]); 
+  
+  // encodeLUI (uint32_t rd, uint32_t imm)
+  instruction = encodeLUI(1, DSPM_BASE_ADDRESS>>12, DEBUG);
+  program[0] = instruction;
+  // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
+  instruction = encodeADDI(1, 1, DSPM_BASE_ADDRESS & 0xFFF, DEBUG);
+  program[1] = instruction;
+  // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
+  instruction = encodeADDI(2,1,(len-1)*4, DEBUG);
+  program[2] = instruction;
+
+  if (DEBUG)
+    printf("Halt PMU core before writing to ISPM!\n");
+  write_32b(STATUS_BASE_ADDR, 1);
+
+  if (DEBUG)
+    printf("Writing Bubble Sort to PMU!\n");
+  error_count += test_spm(ISPM_BASE_ADDRESS, program_size, program);
+
+  if (DEBUG)
+    printf("Writing array of length %0d to DSPM!\n", len);
+  error_count += test_spm_rand(DSPM_BASE_ADDRESS, len);
+
+  if (DEBUG)
+    printf("Start PMU core!\n");
+  write_32b(STATUS_BASE_ADDR, 0);
+
+  read_32b_regs(DSPM_BASE_ADDRESS, len, val, 0x4);
+  if (DEBUG) {
+    printf("Print input array!\n");
+    for (uint32_t i=0; i<len; i++) {
+      printf("%0d\n",val[i]);
+    }
+  }
+
+  // Sort array, this is golden output.
+  bubble_sort(val, len);
+
+  // This keeps CVA6 busy so that the PMU core gets time to finish sorting.
+  array_traversal(10*len);
+
+  read_32b_regs(DSPM_BASE_ADDRESS, len, rval, 0x4);
+  if (DEBUG) {
+    printf("Output array!\n");
+    for (uint32_t i=0; i<len; i++) {
+      printf("%0d\n",rval[i]);
+    }
+  }
+
+  for (uint32_t i=0; i<len; i++) {
+    if (val[i] != rval[i]) {
+      error_count += 1;
+    }
+  }
+  return error_count;
+}
+
+void bubble_sort (int *array, int len) {
+  // loop to access each array element
+  for (int step = 0; step < len - 1; ++step) {
+    // check if swapping occurs  
+    int swapped = 0;
+    // loop to compare array elements
+    for (int i = 0; i < len - step - 1; ++i) {
+      // compare two array elements
+      // change > to < to sort in descending order
+      if (array[i] > array[i + 1]) {
+        // swapping occurs if elements
+        // are not in the intended order
+        int temp = array[i];
+        array[i] = array[i + 1];
+        array[i + 1] = temp;
+        swapped = 1;
+      }
+    }
+    // no swapping means the array is already sorted
+    // so no need for further comparison
+    if (swapped == 0) {
+      break;
+    }
+  }
 }
