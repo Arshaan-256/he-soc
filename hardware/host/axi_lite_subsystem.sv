@@ -187,7 +187,7 @@ module axi_lite_subsystem
 `ifdef PMU_BLOCK
   localparam tlb_cfg_xbar_rule_t [FromHostTlbCfgXbarCfg.NoAddrRules-1:0]
       FromHostTlbCfgXbarAddrMap = '{
-    '{idx: 32'd4, start_addr: 32'h1040_4000, end_addr: 32'h1040_5000},
+    '{idx: 32'd4, start_addr: 32'h1040_4000, end_addr: 32'h1060_4000},
     '{idx: 32'd3, start_addr: 32'h1040_3000, end_addr: 32'h1040_4000},
     '{idx: 32'd2, start_addr: 32'h1040_2000, end_addr: 32'h1040_3000},
     '{idx: 32'd1, start_addr: 32'h1040_1000, end_addr: 32'h1040_2000},
