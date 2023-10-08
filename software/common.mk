@@ -49,7 +49,8 @@ dump:
 	$(SW_HOME)/elf_to_slm.py --binary=$(APP).riscv --vectors=hyperram0.slm
 	cp hyperram*.slm  $(HW_HOME)/
 	cp $(APP).riscv  $(HW_HOME)/
-	echo $(APP).riscv | tee -a  $(HW_HOME)/regression.list
+	echo $(APP).riscv
+#	echo $(APP).riscv | tee -a  $(HW_HOME)/regression.list
 
 all: clean build dis dump
 
