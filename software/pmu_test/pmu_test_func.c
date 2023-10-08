@@ -198,7 +198,7 @@ uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS,
   uint32_t instruction;
   uint32_t cva6_val[len];
   uint32_t ibex_val[len];
-  uint32_t program_size = sizeof(program) / sizeof(program[0]); 
+  uint32_t program_size = sizeof(program) / sizeof(program[0]);
   
   // encodeLUI (uint32_t rd, uint32_t imm)
   instruction = encodeLUI(1, DSPM_BASE_ADDRESS>>12, (DEBUG >= 1));
@@ -261,6 +261,7 @@ uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS,
       error_count += 1;
     }
   }
+  
   return error_count;
 }
 
