@@ -168,7 +168,7 @@ uint32_t test_spm_rand(uint64_t base_addr, uint32_t num_rw) {
 }
 
 uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS, 
-                                    uint32_t DSPM_BASE_ADDRESS,
+                                    uint32_t ARR_BASE,
                                     uint32_t STATUS_BASE_ADDR, 
                                     uint32_t len, 
                                     uint32_t DEBUG) {
@@ -201,10 +201,10 @@ uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS,
   uint32_t program_size = sizeof(program) / sizeof(program[0]);
   
   // encodeLUI (uint32_t rd, uint32_t imm)
-  instruction = encodeLUI(1, DSPM_BASE_ADDRESS>>12, (DEBUG >= 1));
+  instruction = encodeLUI(1, ARR_BASE>>12, (DEBUG >= 1));
   program[1] = instruction;
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(1, 1, DSPM_BASE_ADDRESS & 0xFFF, (DEBUG >= 1));
+  instruction = encodeADDI(1, 1, ARR_BASE & 0xFFF, (DEBUG >= 1));
   program[2] = instruction;
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
   instruction = encodeADDI(2,1,(len-1)*4, (DEBUG >= 1));
@@ -215,14 +215,14 @@ uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS,
   write_32b(STATUS_BASE_ADDR, 1);
 
   if (DEBUG >= 1)
-    printf("Writing BubbleSort to PMU-ISPM!\n");
+    printf("Writing program to PMU-ISPM!\n");
   error_count += test_spm(ISPM_BASE_ADDRESS, program_size, program);
 
   if (DEBUG >= 1)
     printf("Writing array of length %0d to PMU-DSPM!\n", len);
-  error_count += test_spm_rand(DSPM_BASE_ADDRESS, len);
+  error_count += test_spm_rand(ARR_BASE, len);
 
-  read_32b_regs(DSPM_BASE_ADDRESS, len, cva6_val, 0x4);
+  read_32b_regs(ARR_BASE, len, cva6_val, 0x4);
   if (DEBUG >= 2) {
     printf("Print input array!\n");
     for (uint32_t i=0; i<len; i++) {
@@ -248,7 +248,7 @@ uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDRESS,
     uint32_t out = array_traversal(20*len);
   }
 
-  read_32b_regs(DSPM_BASE_ADDRESS, len, ibex_val, 0x4);
+  read_32b_regs(ARR_BASE, len, ibex_val, 0x4);
   if (DEBUG >= 2) {
     printf("Output array!\n");
     for (uint32_t i=0; i<len; i++) {
@@ -289,4 +289,116 @@ void bubble_sort (uint32_t *array, uint32_t len) {
       break;
     }
   }
+}
+
+uint32_t test_pmu_core_counter_b_writes (uint32_t ISPM_BASE_ADDRESS, 
+                                         uint32_t COUNTER_B_BASE_ADDRESS,
+                                         uint32_t TARGET_ADDR,
+                                         uint32_t STATUS_BASE_ADDR, 
+                                         uint32_t COUNTER_BUNDLE_SIZE,
+                                         uint32_t num_counter,
+                                         uint32_t DEBUG) {
+    
+  uint32_t program[] = {
+    0x33,         // The first instruction to the core is discarded so it must be NOP.
+    0x104040b7,   // lui x1, (COUNTER_B_BASE_ADDRESS >> 12)
+    0x1408093,    // addi x1, x1, (COUNTER_B_BASE_ADDRESS && 0xFFF)
+    0x104063b7,   // lui x7, (TARGET_ADDR >> 12)
+    0x38393,      // addi x7, x7, (TARGET_ADDR && 0xFFF)
+    0x400113,     // addi x2, x0, num_counter
+    0x1000193,    // addi x3, x0, COUNTER_BUNDLE_SIZE
+    0x233,
+    0x82b3,
+    0x10f00313,
+    0x62a023,
+    0x10f30313,
+    0x62a223,
+    0x10f30313,
+    0x62a423,
+    0x10f30313,
+    0x62a623,
+    0x10f30313,
+    0x120213,
+    0x3282b3,
+    0xfc221ce3,
+    0x6500413,
+    0x83a023,
+    0x33,
+    0xfe000ee3
+  };
+
+  uint32_t error_count = 0;
+  uint32_t instruction;
+  uint32_t program_size = sizeof(program) / sizeof(program[0]);
+  uint64_t target_value = 0;
+  uint64_t base_addr    = COUNTER_B_BASE_ADDRESS;
+  counter_b_t rval[num_counter];
+
+  // encodeLUI (uint32_t rd, uint32_t imm)
+  instruction = encodeLUI(1, COUNTER_B_BASE_ADDRESS>>12, (DEBUG >= 1));
+  program[1] = instruction;
+  // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
+  instruction = encodeADDI(1, 1, COUNTER_B_BASE_ADDRESS & 0xFFF, (DEBUG >= 1));
+  program[2] = instruction;
+  // encodeLUI (uint32_t rd, uint32_t imm)
+  instruction = encodeLUI(7, TARGET_ADDR>>12, (DEBUG >= 1));
+  program[3] = instruction;
+  // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
+  instruction = encodeADDI(7, 7, TARGET_ADDR & 0xFFF, (DEBUG >= 1));
+  program[4] = instruction;
+  // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
+  instruction = encodeADDI(2,0,num_counter, (DEBUG >= 1));
+  program[5] = instruction;
+  // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
+  instruction = encodeADDI(3,0,COUNTER_BUNDLE_SIZE, (DEBUG >= 1));
+  program[6] = instruction;
+
+  if (DEBUG >= 1)
+    printf("Halt PMU core before writing to ISPM!\n");
+  write_32b(STATUS_BASE_ADDR, 1);
+
+  if (DEBUG >= 1)
+    printf("Writing program to PMU-ISPM!\n");
+  error_count += test_spm(ISPM_BASE_ADDRESS, program_size, program);
+
+  if (DEBUG >= 1)
+    printf("Start PMU core!\n");
+  write_32b(STATUS_BASE_ADDR, 0);
+
+  while (1) {
+    uint read_target = read_32b(TARGET_ADDR);
+    if (read_target == 101)
+      break;
+  }
+
+  
+  for (uint32_t i=0; i<num_counter; i++) {
+    rval[i] = read_counter_b(base_addr);
+    base_addr = base_addr + COUNTER_BUNDLE_SIZE;
+  }
+
+  for (uint32_t i=0; i<num_counter; i++) {
+    target_value = target_value + 271;
+    if (rval[i].counter != target_value) {
+      error_count += 1;
+      printf("Counter_b.counter %0d: Reading %0d vs %0d!\n", i, target_value, rval[i].counter);
+    }
+    target_value = target_value + 271;
+    if (rval[i].event_sel != target_value) {
+      error_count += 1;
+      printf("Counter_b.event_sel %0d: Reading %0d vs %0d!\n", i, target_value, rval[i].event_sel);
+    }
+    target_value = target_value + 271;
+    if (rval[i].event_info != target_value) {
+      error_count += 1;
+      printf("Counter_b.event_info %0d: Reading %0d vs %0d!\n", i, target_value, rval[i].event_info);
+    }
+    target_value = target_value + 271;
+    if (rval[i].init_budget != target_value) {
+      error_count += 1;
+      printf("Counter_b.init_budget %0d: Reading %0d vs %0d!\n", i, target_value, rval[i].init_budget);
+    }
+  }
+
+  return error_count;
 }

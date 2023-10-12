@@ -82,7 +82,7 @@ int main(int argc, char const *argv[]) {
   uint32_t counter_val[]          = {0x100, 0x200, 0x300, 0x400};
   uint32_t event_sel_val[]        = {0x1FAB00, 0x1FAB01, 0x1FAB02, 0x1FAB03};
   uint32_t act_event_sel_val[]    = {0x1F001F, 0x1F002F, 0x1F003F, 0x1F004F};
-  uint32_t event_info_val[]       = {0xA00, 0xB00, 0xC00, 0xD00};
+  uint32_t event_info_val[]       = {0x8001C0		, 0x8001C0, 0x8001E0, 0x8001E0};
   uint32_t init_budget_val[]      = {0xFFFFFFE0, 0xFFFFA000, 0xFFFFB000, 0xFFFFC000};
   uint64_t period_val             = 0x0;
   uint64_t timer;
@@ -95,8 +95,34 @@ int main(int argc, char const *argv[]) {
     counter_b[i].event_info  = event_info_val[i];
     counter_b[i].init_budget = init_budget_val[i];
   }
-
   uint32_t program[] = {0x593,
+    0x104040b7,
+0x1408093,
+0x104063b7,
+0x38393,
+0x400113,
+0x1000193,
+0x233,
+0x82b3,
+0x1100313,
+0x62a023,
+0x1130313,
+0x62a223,
+0x1130313,
+0x62a423,
+0x1130313,
+0x62a623,
+0x1130313,
+0x120213,
+0x3282b3,
+0xfc221ce3,
+0x6500413,
+0x83a023,
+0x33,
+0xfe000ee3
+  };
+
+  uint32_t _program[] = {0x593,
                         0x593,
                         0x104060b7,
 0x8093,
@@ -397,20 +423,28 @@ int main(int argc, char const *argv[]) {
   printf("Hello PMU!\n");
   uart_wait_tx_done();
   
-  
   uint32_t program_size = sizeof(program) / sizeof(program[0]);                            
 
-  // // printf("Testing Counters!\n");
-  // // test_counter_bundle(COUNTER_BASE_ADDR, 4, COUNTER_BUNDLE_SIZE, counter_b);
+  // printf("Testing Counters!\n");
+  // test_counter_bundle(COUNTER_BASE_ADDR, 4, COUNTER_BUNDLE_SIZE, counter_b);
+
+  // Setup event_sel registers.
+  // printf("Setting up event_sel_config!\n");
+  // write_32b_regs(EVENT_SEL_BASE_ADDR, 4, act_event_sel_val, COUNTER_BUNDLE_SIZE);
+
+
+  // for (uint32_t i=0; i<2; i++) {
+  //   array_traversal(NUM_ELEMENT*(i+1));
+  // }
 
   // Testing for ISPM
   // printf("Testing ISPM!\n");
   // error_count += test_spm(ISPM_BASE_ADDRESS, program_size, program);
+  // printf("ISPM Test Over, errors: 0%d!\n", error_count);
   
-  // // Testing for DSPM
+  // Testing for DSPM
   // printf("Testing DSPM!\n");
-  // err = test_spm_rand(DSPM_BASE_ADDRESS, 20);
-  // error_count += err;
+  // error_count += test_spm_rand(DSPM_BASE_ADDRESS, 20);
 
   // printf("Input array!\n");
   // uint32_t rval[20];
@@ -425,7 +459,11 @@ int main(int argc, char const *argv[]) {
 
   // printf("Starting the core!\n");
   // write_32b(STATUS_BASE_ADDR, 0);
-
+  // while (1) {
+  //   uint end = read_32b(DSPM_BASE_ADDRESS);
+  //   if (end == 101)
+  //     break;
+  // }
   // for (uint32_t i=0; i<2; i++) {
   //   write_32b(STATUS_BASE_ADDR, 0);
   //   array_traversal(NUM_ELEMENT*(i+1));
@@ -434,10 +472,18 @@ int main(int argc, char const *argv[]) {
 
   // add wave -position insertpoint sim:/ariane_tb/dut/i_host_domain/i_pmu/i_pmu_core/i_ibex_pmu_core/gen_regfile_ff/register_file_i/*
 
-  error_count += test_pmu_core_bubble_sort(ISPM_BASE_ADDRESS,
-                                           DSPM_BASE_ADDRESS,
-                                           STATUS_BASE_ADDR,
-                                           60, 2);
+  error_count += test_pmu_core_counter_b_writes (ISPM_BASE_ADDRESS, 
+                                                 COUNTER_BASE_ADDR, 
+                                                 DSPM_BASE_ADDRESS, 
+                                                 STATUS_BASE_ADDR,
+                                                 COUNTER_BUNDLE_SIZE,
+                                                 NUM_COUNTER, 
+                                                 2);
+
+  // error_count += test_pmu_core_bubble_sort(ISPM_BASE_ADDRESS,
+  //                                          DSPM_BASE_ADDRESS,
+  //                                          STATUS_BASE_ADDR,
+  //                                          10, 2);
 
   printf("The test is over!\n");
   printf("Errors: %0d\n", error_count);
