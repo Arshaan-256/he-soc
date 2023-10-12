@@ -44,4 +44,4 @@ report_route_status -file $outputDir/post_route_status.rpt
 report_timing_summary -file $outputDir/post_route_timing_summary.rpt
 report_power -file $outputDir/post_route_power.rpt
 report_drc -file $outputDir/post_imp_drc.rpt
-write_bitstream -force $outputDir/alsaqr_xilinx.bit
+write_bitstream alsaqr_xilinx.bit
