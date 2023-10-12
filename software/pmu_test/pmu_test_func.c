@@ -366,7 +366,7 @@ uint32_t test_pmu_core_counter_b_writes (uint32_t ISPM_BASE_ADDRESS,
   write_32b(STATUS_BASE_ADDR, 0);
 
   while (1) {
-    uint read_target = read_32b(TARGET_ADDR);
+    uint32_t read_target = read_32b(TARGET_ADDR);
     if (read_target == 101)
       break;
   }
