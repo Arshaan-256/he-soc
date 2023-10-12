@@ -26,6 +26,9 @@ module host_domain
   import ariane_soc::*;
   import udma_subsystem_pkg::*;  
   import gpio_pkg::*; 
+
+  `define PMU_BLOCK
+
   `ifndef FPGA_EMUL
     `ifndef SIMPLE_PADFRAME
         import pkg_alsaqr_periph_padframe::*;
@@ -156,297 +159,387 @@ module host_domain
    
    ariane_axi_soc::req_lite_t  axi_llc_cfg_req;
    ariane_axi_soc::resp_lite_t axi_llc_cfg_res;
+
+  `ifdef PMU_BLOCK
+    ariane_axi_soc::req_lite_t  axi_pmu_cfg_req;
+    ariane_axi_soc::resp_lite_t axi_pmu_cfg_res;
+
+    localparam int unsigned PMU_NUM_COUNTER    = 4;
+    localparam int unsigned PNU_COUNTER_WIDTH  = 64;
+    logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
+  `endif 
    
-   // rule definitions
-   typedef struct packed {
-     int unsigned             idx;
-     ariane_axi_soc::addr_t   start_addr;
-     ariane_axi_soc::addr_t   end_addr;
-   } rule_full_t;
-   
-   // When changing these parameters, change the L2 size accordingly in ariane_soc_pkg
-   localparam NB_L2_BANKS = 8;
-   localparam L2_BANK_SIZE = 16384; // 2^14 words (32 bits)
-
-   localparam L2_BANK_ADDR_WIDTH = $clog2(L2_BANK_SIZE);
-   localparam L2_MEM_ADDR_WIDTH = $clog2(L2_BANK_SIZE * NB_L2_BANKS) - $clog2(NB_L2_BANKS); 
-   localparam L2_DATA_WIDTH = 32 ; // Do not change
-
-   localparam AXI64_2_TCDM32_N_PORTS = 4; // Do not change, to achieve full bandwith from 64 bit AXI and 32 bit tcdm we need 4 ports!
-                                          // It is hardcoded in the axi2tcdm_wrap module.
-
-   localparam NB_UDMA_TCDM_CHANNEL = 2;
-
-   logic                                 s_clk_cva6;
-   logic                                 s_rstn_cva6_sync;
-   logic                                 s_soc_clk;
-   logic                                 s_synch_soc_rst;
-   logic                                 s_synch_global_rst;
-   logic                                 s_rstn_cluster_sync;
-   logic                                 s_dm_rst;
-   logic                                 ndmreset_n;
-   logic [31*4-1:0]                      s_udma_events;
-   logic                                 s_dma_pe_evt;
-   logic [N_CAN-1:0]                     s_can_irq;
-   logic                                 s_c2h_irq;
-   
-   logic                                 phy_clk;
-   logic                                 phy_clk_90;
-
-   logic                                 s_llc_read_hit_cache;
-   logic                                 s_llc_read_miss_cache;
-   logic                                 s_llc_write_hit_cache;
-   logic                                 s_llc_write_miss_cache;
-
-   axi_llc_pkg::events_t llc_events;
-   
-   REG_BUS #(
-        .ADDR_WIDTH( 32 ),
-        .DATA_WIDTH( 32 )
-    ) serial_linkcfg_reg_master (
-        .clk_i (s_soc_clk)
-    ); 
-
-
-   assign   soc_clk_o  = s_soc_clk;
-   assign   soc_rst_no = s_synch_soc_rst;
-   assign   rstn_cluster_sync_o = s_rstn_cluster_sync;
-   
-   AXI_BUS #(
-     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
-     .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
-     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
-     .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
-   ) l2_axi_bus();
- 
-   AXI_BUS #(
-     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
-     .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
-     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
-     .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
-   ) apb_axi_bus();
+  // rule definitions
+  typedef struct packed {
+    int unsigned             idx;
+    ariane_axi_soc::addr_t   start_addr;
+    ariane_axi_soc::addr_t   end_addr;
+  } rule_full_t;
   
-   AXI_BUS #(
-     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
-     .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
-     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
-     .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
-   ) hyper_axi_bus();
+  // When changing these parameters, change the L2 size accordingly in ariane_soc_pkg
+  localparam NB_L2_BANKS = 8;
+  localparam L2_BANK_SIZE = 16384; // 2^14 words (32 bits)
 
-   AXI_BUS #(
-     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
-     .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
-     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
-     .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
-   ) host_lite_bus ();
-   
-   AXI_BUS #(
-     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH          ),
-     .AXI_DATA_WIDTH ( AXI_DATA_WIDTH             ),
-     `ifdef EXCLUDE_LLC
-     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave   ),
-     `else
-     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave+1 ),
-     `endif
-     .AXI_USER_WIDTH ( AXI_USER_WIDTH             )
-   ) mem_axi_bus ();    
+  localparam L2_BANK_ADDR_WIDTH = $clog2(L2_BANK_SIZE);
+  localparam L2_MEM_ADDR_WIDTH = $clog2(L2_BANK_SIZE * NB_L2_BANKS) - $clog2(NB_L2_BANKS); 
+  localparam L2_DATA_WIDTH = 32 ; // Do not change
 
-   AXI_LITE #(
-    .AXI_ADDR_WIDTH (AXI_LITE_AW),
-    .AXI_DATA_WIDTH (AXI_LITE_DW)
-   ) llc_cfg_bus();
-   
-   XBAR_TCDM_BUS axi_bridge_2_interconnect[AXI64_2_TCDM32_N_PORTS]();
-   XBAR_TCDM_BUS udma_2_tcdm_channels[NB_UDMA_TCDM_CHANNEL]();
+  localparam AXI64_2_TCDM32_N_PORTS = 4; // Do not change, to achieve full bandwith from 64 bit AXI and 32 bit tcdm we need 4 ports!
+                                        // It is hardcoded in the axi2tcdm_wrap module.
+
+  localparam NB_UDMA_TCDM_CHANNEL = 2;
+
+  logic                                 s_clk_cva6;
+  logic                                 s_rstn_cva6_sync;
+  logic                                 s_soc_clk;
+  logic                                 s_synch_soc_rst;
+  logic                                 s_synch_global_rst;
+  logic                                 s_rstn_cluster_sync;
+  logic                                 s_dm_rst;
+  logic                                 ndmreset_n;
+  logic [31*4-1:0]                      s_udma_events;
+  logic                                 s_dma_pe_evt;
+  logic [N_CAN-1:0]                     s_can_irq;
+  logic                                 s_c2h_irq;
   
+  logic                                 phy_clk;
+  logic                                 phy_clk_90;
 
-  `ifdef XILINX_DDR
-   AXI_BUS #(
-     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH           ),
-     .AXI_DATA_WIDTH ( AXI_DATA_WIDTH              ),
-     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave +1 ),
-     .AXI_USER_WIDTH ( AXI_USER_WIDTH              )
-   ) dummyaxibus();
-   assign dummyaxibus.aw_valid  = 1'b0;
-   assign dummyaxibus.ar_valid  = 1'b0;
-   assign dummyaxibus.w_valid   = 1'b0;
+  logic                                 s_llc_read_hit_cache;
+  logic                                 s_llc_read_miss_cache;
+  logic                                 s_llc_write_hit_cache;
+  logic                                 s_llc_write_miss_cache;
+
+  axi_llc_pkg::events_t llc_events;
    
-   
-   `AXI_ASSIGN(axi_ddr_master,mem_axi_bus)
-  `endif
+  REG_BUS #(
+      .ADDR_WIDTH( 32 ),
+      .DATA_WIDTH( 32 )
+  ) serial_linkcfg_reg_master (
+      .clk_i (s_soc_clk)
+  ); 
 
-  `ifdef EXCLUDE_LLC
-   `AXI_ASSIGN(mem_axi_bus,hyper_axi_bus)
 
-   logic r_valid_d, r_valid_q;
-   logic b_valid_d, b_valid_q;
+  assign   soc_clk_o  = s_soc_clk;
+  assign   soc_rst_no = s_synch_soc_rst;
+  assign   rstn_cluster_sync_o = s_rstn_cluster_sync;
+  
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
+  ) l2_axi_bus();
 
-   assign llc_cfg_bus.aw_ready = 1'b1;
-   assign llc_cfg_bus.w_ready  = 1'b1;
-   assign llc_cfg_bus.b_valid  = b_valid_q;
-   assign llc_cfg_bus.b_resp   = 2'b0;
-   assign llc_cfg_bus.ar_ready = 1'b1;
-   assign llc_cfg_bus.r_data   = 32'hdeadf000;
-   assign llc_cfg_bus.r_valid  = r_valid_q;
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
+  ) apb_axi_bus();
 
-   assign s_llc_read_hit_cache   = 1'b0;
-   assign s_llc_read_miss_cache  = 1'b0;
-   assign s_llc_write_hit_cache  = 1'b0;
-   assign s_llc_write_miss_cache = 1'b0;
-   
-   always_comb begin
-      r_valid_d = r_valid_q;
-      if(!r_valid_q && llc_cfg_bus.ar_valid)
-        r_valid_d = 1'b1;
-      else if(r_valid_q && llc_cfg_bus.r_ready)
-        r_valid_d = 1'b0;
-   end
-   `FFARN(r_valid_q, r_valid_d, '0, s_soc_clk, s_synch_soc_rst)
-      
-   always_comb begin
-      b_valid_d = b_valid_q;
-      if(!b_valid_q && llc_cfg_bus.w_valid)
-        b_valid_d = 1'b1;
-      else if(b_valid_q && llc_cfg_bus.b_ready)
-        b_valid_d = 1'b0;
-   end
-   `FFARN(b_valid_q, b_valid_d, '0, s_soc_clk, s_synch_soc_rst)
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
+  ) hyper_axi_bus();
 
-  `else
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
+  ) host_lite_bus ();
+  
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH          ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH             ),
+    `ifdef EXCLUDE_LLC
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave   ),
+    `else
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave+1 ),
+    `endif
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH             )
+  ) mem_axi_bus ();    
 
-   `AXI_ASSIGN_TO_REQ(axi_cpu_req,hyper_axi_bus)
-   `AXI_ASSIGN_FROM_RESP(hyper_axi_bus,axi_cpu_res)
-   `AXI_ASSIGN_FROM_REQ(mem_axi_bus,axi_mem_req)
-   `AXI_ASSIGN_TO_RESP(axi_mem_res,mem_axi_bus)
-   `AXI_LITE_ASSIGN_TO_REQ(axi_llc_cfg_req,llc_cfg_bus)
-   `AXI_LITE_ASSIGN_FROM_RESP(llc_cfg_bus,axi_llc_cfg_res)
-    
-    axi_llc_top #(
-      .SetAssociativity ( 32'd8                          ),
-      .NumLines         ( 32'd256                        ),
-      .NumBlocks        ( 32'd8                          ),
-      .AxiIdWidth       ( ariane_soc::IdWidthSlave       ),
-      .AxiAddrWidth     ( AXI_ADDRESS_WIDTH              ),
-      .AxiDataWidth     ( AXI_DATA_WIDTH                 ),
-      .AxiUserWidth     ( AXI_USER_WIDTH                 ),
-      .AxiLiteAddrWidth ( AXI_LITE_AW                    ),
-      .AxiLiteDataWidth ( AXI_LITE_DW                    ),
-      .slv_req_t        ( ariane_axi_soc::req_slv_t      ),
-      .slv_resp_t       ( ariane_axi_soc::resp_slv_t     ),
-      .mst_req_t        ( ariane_axi_soc::req_slv_mem_t  ),
-      .mst_resp_t       ( ariane_axi_soc::resp_slv_mem_t ),
-      .lite_req_t       ( ariane_axi_soc::req_lite_t     ),
-      .lite_resp_t      ( ariane_axi_soc::resp_lite_t    ),
-      .rule_full_t      ( rule_full_t                    )
-    ) i_axi_llc (
-      .clk_i               ( s_soc_clk                                       ),
-      .rst_ni              ( s_synch_soc_rst                                 ),
-      .test_i              ( 1'b0                                            ),
-      .slv_req_i           ( axi_cpu_req                                     ),
-      .slv_resp_o          ( axi_cpu_res                                     ),
-      .mst_req_o           ( axi_mem_req                                     ),
-      .mst_resp_i          ( axi_mem_res                                     ),
-      .conf_req_i          ( axi_llc_cfg_req                                 ),
-      .conf_resp_o         ( axi_llc_cfg_res                                 ),
-      .cached_start_addr_i ( ariane_soc::HYAXIBase                           ),
-      .cached_end_addr_i   ( ariane_soc::HYAXIBase + ariane_soc::HYAXILength ),
-      .spm_start_addr_i    ( '0                                              ),
-      .axi_llc_events_o    ( llc_events                                      )
-    );
-
-   assign s_llc_read_hit_cache = llc_events.hit_read_cache.active;
-   assign s_llc_read_miss_cache = llc_events.miss_read_cache.active;
-   assign s_llc_write_hit_cache = llc_events.hit_write_cache.active;
-   assign s_llc_write_miss_cache = llc_events.miss_write_cache.active;
-   
-  `endif   
-     
-   cva6_subsystem # (
-        .NUM_WORDS         ( NUM_WORDS  ),
-        .InclSimDTM        ( 1'b1       ),
-        .StallRandomOutput ( 1'b1       ),
-        .StallRandomInput  ( 1'b1       ),
-        .JtagEnable        ( JtagEnable )
-   ) i_cva6_subsystem (
-        .clk_i(s_soc_clk),
-        .rst_ni(s_synch_global_rst),
-        .cva6_clk_i(s_clk_cva6),
-        .cva6_rst_ni(s_rstn_cva6_sync),
-        .rtc_i,
-        .dmi_req_valid,
-        .dmi_req_ready,
-        .dmi_req_bits_addr,
-        .dmi_req_bits_op,
-        .dmi_req_bits_data,
-        .dmi_resp_valid,
-        .dmi_resp_ready,
-        .dmi_resp_bits_resp,
-        .dmi_resp_bits_data,                      
-        .jtag_TCK,
-        .jtag_TMS,
-        .jtag_TDI,
-        .jtag_TRSTn,
-        .jtag_TDO_data,
-        .jtag_TDO_driven,
-        .sync_rst_ni          ( s_synch_soc_rst      ),
-        .udma_events_i        ( s_udma_events        ),
-        .cluster_eoc_i        ( cluster_eoc_i        ),
-        .c2h_irq_i            ( s_c2h_irq            ),
-        .can_irq_i            ( s_can_irq            ),
-        .cl_dma_pe_evt_i      ( s_dma_pe_evt         ),
-        .dm_rst_o             ( s_dm_rst             ),
-        .l2_axi_master        ( l2_axi_bus           ),
-        .apb_axi_master       ( apb_axi_bus          ),
-        .hyper_axi_master     ( hyper_axi_bus        ),
-
-        .serial_link_to_pad   ( serial_link_to_pad   ),
-        .pad_to_serial_link   ( pad_to_serial_link   ),
-        .serial_linkcfg_reg_master ( serial_linkcfg_reg_master ),   
-        
-        .cluster_axi_master   ( cluster_axi_master   ),
-        .cluster_axi_slave    ( cluster_axi_slave    ),
-
-        .cva6_uart_rx_i       ( cva6_uart_rx_i       ),
-        .cva6_uart_tx_o       ( cva6_uart_tx_o       ),
-        .axi_lite_master      ( host_lite_bus        )
-    );
-   
-   
-   axi2tcdm_wrap #(
+`ifdef PMU_BLOCK
+  AXI_BUS #(
+      .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
+      .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
       .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
-      .AXI_USER_WIDTH ( AXI_USER_WIDTH           ),
-      .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        )
-    ) i_axi2mem_l2 (
-      .clk_i       ( s_soc_clk                 ),
-      .rst_ni      ( s_synch_soc_rst           ),
-      .test_en_i   ( test_en                   ),
-      .axi_slave   ( l2_axi_bus                ),
-      .tcdm_master ( axi_bridge_2_interconnect ),
-      .busy_o      (                           )
-    );
+      .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
+  ) hyper_axi_spu_o_bus ();
+
+  SPU_INTF #(
+    .NUM_EVENT        ( 5 ),
+    .EVENT_INFO_BITS  ( 8 ),
+    .NUM_SOURCE       ( 1 )
+  ) spu_llc_in ();
+
+  spu_top #(
+    .CacheCfg            ( CacheCfg             ),
+    .AXICfg              ( AXICfg               )
+  ) spu_cpu_llc (
+    .clk_i               ( s_soc_clk            ),
+    .rst_ni              ( s_synch_soc_rst      ),
+    .spu_slv             ( hyper_axi_bus        ),
+    .spu_mst             ( hyper_axi_spu_o_bus  ),
+    .e_out               ( spu_llc_in           )
+  );
+
+   SPU_INTF #(
+    .NUM_EVENT        ( 5 ),
+    .EVENT_INFO_BITS  ( 8 ),
+    .NUM_SOURCE       ( 1 )
+  ) spu_llc_out ();
+
+  spu_top #(
+    .CacheCfg            ( CacheCfg             ),
+    .AXICfg              ( AXICfg               )
+  ) spu_llc_mem (
+    .clk_i               ( s_soc_clk            ),
+    .rst_ni              ( s_synch_soc_rst      ),
+    .spu_slv             ( hyper_axi_bus        ),
+    .spu_mst             ( hyper_axi_spu_o_bus  ),
+    .e_out               ( spu_llc_out          )
+  );
+
+  pmu_top #(
+    .NUM_COUNTER      ( PMU_NUM_COUNTER               ),
+    .NUM_EVU          ( PNU_COUNTER_WIDTH             ),
+    .AxiLiteAddrWidth ( AXI_LITE_AW                   ),
+    .AxiLiteDataWidth ( AXI_LITE_DW                   ),
+    .lite_req_t       ( ariane_axi_soc::req_lite_t    ),
+    .lite_resp_t      ( ariane_axi_soc::resp_lite_t   )
+  ) (
+    .clk_i            ( s_soc_clk                     ),
+    .rst_ni           ( s_synch_soc_rst               ),
+    .spu1_in          ( spu_llc_in                    ),
+    .spu2_in          ( spu_llc_in                    ),
+    .conf_req_i       ( axi_pmu_cfg_req               ),
+    .conf_resp_o      ( axi_pmu_cfg_res               ),
+    .intr_o           ( pmu_intr_o                    )
+  );
+
+  AXI_LITE #(
+  .AXI_ADDR_WIDTH (AXI_LITE_AW),
+  .AXI_DATA_WIDTH (AXI_LITE_DW)
+  ) pmu_cfg_bus();
+
+  `AXI_LITE_ASSIGN_TO_REQ(axi_pmu_cfg_req,pmu_cfg_bus)
+  `AXI_LITE_ASSIGN_FROM_RESP(pmu_cfg_bus,axi_pmu_cfg_res)
+`endif
+
+  AXI_LITE #(
+  .AXI_ADDR_WIDTH (AXI_LITE_AW),
+  .AXI_DATA_WIDTH (AXI_LITE_DW)
+  ) llc_cfg_bus();
+  
+  XBAR_TCDM_BUS axi_bridge_2_interconnect[AXI64_2_TCDM32_N_PORTS]();
+  XBAR_TCDM_BUS udma_2_tcdm_channels[NB_UDMA_TCDM_CHANNEL]();
 
 
-   l2_subsystem #(
-      .NB_L2_BANKS        ( NB_L2_BANKS              ),
-      .L2_BANK_SIZE       ( L2_BANK_SIZE             ), 
-      .L2_BANK_ADDR_WIDTH ( L2_BANK_ADDR_WIDTH       ),
-      .L2_DATA_WIDTH      ( L2_DATA_WIDTH            )                   
-     ) i_l2_subsystem   (
-      .clk_i                     ( s_soc_clk                 ),
-      .rst_ni                    ( s_synch_soc_rst           ),
-      .axi_bridge_2_interconnect ( axi_bridge_2_interconnect ),
-      .udma_tcdm_channels        ( udma_2_tcdm_channels      )
-     );
+`ifdef XILINX_DDR
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH           ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH              ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave +1 ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH              )
+  ) dummyaxibus();
+  assign dummyaxibus.aw_valid  = 1'b0;
+  assign dummyaxibus.ar_valid  = 1'b0;
+  assign dummyaxibus.w_valid   = 1'b0;
+  
+  
+  `AXI_ASSIGN(axi_ddr_master,mem_axi_bus)
+`endif
+
+`ifdef EXCLUDE_LLC
+  `AXI_ASSIGN(mem_axi_bus,hyper_axi_bus)
+
+  logic r_valid_d, r_valid_q;
+  logic b_valid_d, b_valid_q;
+
+  assign llc_cfg_bus.aw_ready = 1'b1;
+  assign llc_cfg_bus.w_ready  = 1'b1;
+  assign llc_cfg_bus.b_valid  = b_valid_q;
+  assign llc_cfg_bus.b_resp   = 2'b0;
+  assign llc_cfg_bus.ar_ready = 1'b1;
+  assign llc_cfg_bus.r_data   = 32'hdeadf000;
+  assign llc_cfg_bus.r_valid  = r_valid_q;
+
+  assign s_llc_read_hit_cache   = 1'b0;
+  assign s_llc_read_miss_cache  = 1'b0;
+  assign s_llc_write_hit_cache  = 1'b0;
+  assign s_llc_write_miss_cache = 1'b0;
+  
+  always_comb begin
+    r_valid_d = r_valid_q;
+    if(!r_valid_q && llc_cfg_bus.ar_valid)
+      r_valid_d = 1'b1;
+    else if(r_valid_q && llc_cfg_bus.r_ready)
+      r_valid_d = 1'b0;
+  end
+  `FFARN(r_valid_q, r_valid_d, '0, s_soc_clk, s_synch_soc_rst)
+    
+  always_comb begin
+    b_valid_d = b_valid_q;
+    if(!b_valid_q && llc_cfg_bus.w_valid)
+      b_valid_d = 1'b1;
+    else if(b_valid_q && llc_cfg_bus.b_ready)
+      b_valid_d = 1'b0;
+  end
+  `FFARN(b_valid_q, b_valid_d, '0, s_soc_clk, s_synch_soc_rst)
+
+`else
+
+`ifdef PMU_BLOCK
+  `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_spu_o_bus )
+  `AXI_ASSIGN_FROM_RESP( hyper_axi_spu_o_bus, axi_cpu_res )
+`else
+  `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_bus )
+  `AXI_ASSIGN_FROM_RESP( hyper_axi_bus, axi_cpu_res )
+`endif 
+
+  `AXI_ASSIGN_TO_REQ(axi_cpu_req,hyper_axi_bus)
+  `AXI_ASSIGN_FROM_RESP(hyper_axi_bus,axi_cpu_res)
+  `AXI_ASSIGN_FROM_REQ(mem_axi_bus,axi_mem_req)
+  `AXI_ASSIGN_TO_RESP(axi_mem_res,mem_axi_bus)
+  `AXI_LITE_ASSIGN_TO_REQ(axi_llc_cfg_req,llc_cfg_bus)
+  `AXI_LITE_ASSIGN_FROM_RESP(llc_cfg_bus,axi_llc_cfg_res)
+  
+  axi_llc_top #(
+    .SetAssociativity ( 32'd8                          ),
+    .NumLines         ( 32'd256                        ),
+    .NumBlocks        ( 32'd8                          ),
+    .AxiIdWidth       ( ariane_soc::IdWidthSlave       ),
+    .AxiAddrWidth     ( AXI_ADDRESS_WIDTH              ),
+    .AxiDataWidth     ( AXI_DATA_WIDTH                 ),
+    .AxiUserWidth     ( AXI_USER_WIDTH                 ),
+    .AxiLiteAddrWidth ( AXI_LITE_AW                    ),
+    .AxiLiteDataWidth ( AXI_LITE_DW                    ),
+    .slv_req_t        ( ariane_axi_soc::req_slv_t      ),
+    .slv_resp_t       ( ariane_axi_soc::resp_slv_t     ),
+    .mst_req_t        ( ariane_axi_soc::req_slv_mem_t  ),
+    .mst_resp_t       ( ariane_axi_soc::resp_slv_mem_t ),
+    .lite_req_t       ( ariane_axi_soc::req_lite_t     ),
+    .lite_resp_t      ( ariane_axi_soc::resp_lite_t    ),
+    .rule_full_t      ( rule_full_t                    )
+  ) i_axi_llc (
+    .clk_i               ( s_soc_clk                                       ),
+    .rst_ni              ( s_synch_soc_rst                                 ),
+    .test_i              ( 1'b0                                            ),
+    .slv_req_i           ( axi_cpu_req                                     ),
+    .slv_resp_o          ( axi_cpu_res                                     ),
+    .mst_req_o           ( axi_mem_req                                     ),
+    .mst_resp_i          ( axi_mem_res                                     ),
+    .conf_req_i          ( axi_llc_cfg_req                                 ),
+    .conf_resp_o         ( axi_llc_cfg_res                                 ),
+    .cached_start_addr_i ( ariane_soc::HYAXIBase                           ),
+    .cached_end_addr_i   ( ariane_soc::HYAXIBase + ariane_soc::HYAXILength ),
+    .spm_start_addr_i    ( '0                                              ),
+    .axi_llc_events_o    ( llc_events                                      )
+  );
+
+  assign s_llc_read_hit_cache = llc_events.hit_read_cache.active;
+  assign s_llc_read_miss_cache = llc_events.miss_read_cache.active;
+  assign s_llc_write_hit_cache = llc_events.hit_write_cache.active;
+  assign s_llc_write_miss_cache = llc_events.miss_write_cache.active;
    
-    edge_propagator_rx ep_dma_pe_evt_i (
-        .clk_i   ( s_soc_clk               ),
-        .rstn_i  ( s_rstn_cluster_sync     ),
-        .valid_o ( s_dma_pe_evt            ),
-        .ack_o   ( dma_pe_evt_ack_o        ),
-        .valid_i ( dma_pe_evt_valid_i      )
-    );
+`endif   
+     
+  cva6_subsystem # (
+    `ifdef PMU_BLOCK
+      .PMU_NUM_COUNTER ( PMU_NUM_COUNTER  ),
+    `endif    
+    .NUM_WORDS         ( NUM_WORDS        ),
+    .InclSimDTM        ( 1'b1             ),
+    .StallRandomOutput ( 1'b1             ),
+    .StallRandomInput  ( 1'b1             ),
+    .JtagEnable        ( JtagEnable       )
+  ) i_cva6_subsystem (
+    .clk_i(s_soc_clk),
+    .rst_ni(s_synch_global_rst),
+    .cva6_clk_i(s_clk_cva6),
+    .cva6_rst_ni(s_rstn_cva6_sync),
+    .rtc_i,
+    .dmi_req_valid,
+    .dmi_req_ready,
+    .dmi_req_bits_addr,
+    .dmi_req_bits_op,
+    .dmi_req_bits_data,
+    .dmi_resp_valid,
+    .dmi_resp_ready,
+    .dmi_resp_bits_resp,
+    .dmi_resp_bits_data,                      
+    .jtag_TCK,
+    .jtag_TMS,
+    .jtag_TDI,
+    .jtag_TRSTn,
+    .jtag_TDO_data,
+    .jtag_TDO_driven,
+    .sync_rst_ni          ( s_synch_soc_rst      ),
+    .udma_events_i        ( s_udma_events        ),
+    .cluster_eoc_i        ( cluster_eoc_i        ),
+    .c2h_irq_i            ( s_c2h_irq            ),
+    .can_irq_i            ( s_can_irq            ),
+    .cl_dma_pe_evt_i      ( s_dma_pe_evt         ),
+    .dm_rst_o             ( s_dm_rst             ),
+    .l2_axi_master        ( l2_axi_bus           ),
+    .apb_axi_master       ( apb_axi_bus          ),
+    .hyper_axi_master     ( hyper_axi_bus        ),
+
+    .serial_link_to_pad   ( serial_link_to_pad   ),
+    .pad_to_serial_link   ( pad_to_serial_link   ),
+    .serial_linkcfg_reg_master ( serial_linkcfg_reg_master ),   
+    
+    .cluster_axi_master   ( cluster_axi_master   ),
+    .cluster_axi_slave    ( cluster_axi_slave    ),
+
+    `ifdef PMU_BLOCK
+      .pmu_intr_i           ( pmu_intr_o           ),
+    `endif
+
+    .cva6_uart_rx_i       ( cva6_uart_rx_i       ),
+    .cva6_uart_tx_o       ( cva6_uart_tx_o       ),
+    .axi_lite_master      ( host_lite_bus        )
+  );
    
-   apb_subsystem #(
+  axi2tcdm_wrap #(
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH           ),
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        )
+  ) i_axi2mem_l2 (
+    .clk_i       ( s_soc_clk                 ),
+    .rst_ni      ( s_synch_soc_rst           ),
+    .test_en_i   ( test_en                   ),
+    .axi_slave   ( l2_axi_bus                ),
+    .tcdm_master ( axi_bridge_2_interconnect ),
+    .busy_o      (                           )
+  );
+
+  l2_subsystem #(
+    .NB_L2_BANKS        ( NB_L2_BANKS              ),
+    .L2_BANK_SIZE       ( L2_BANK_SIZE             ), 
+    .L2_BANK_ADDR_WIDTH ( L2_BANK_ADDR_WIDTH       ),
+    .L2_DATA_WIDTH      ( L2_DATA_WIDTH            )                   
+  ) i_l2_subsystem   (
+    .clk_i                     ( s_soc_clk                 ),
+    .rst_ni                    ( s_synch_soc_rst           ),
+    .axi_bridge_2_interconnect ( axi_bridge_2_interconnect ),
+    .udma_tcdm_channels        ( udma_2_tcdm_channels      )
+  );
+   
+  edge_propagator_rx ep_dma_pe_evt_i (
+      .clk_i   ( s_soc_clk               ),
+      .rstn_i  ( s_rstn_cluster_sync     ),
+      .valid_o ( s_dma_pe_evt            ),
+      .ack_o   ( dma_pe_evt_ack_o        ),
+      .valid_i ( dma_pe_evt_valid_i      )
+  );
+   
+  apb_subsystem #(
        .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
        .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
        .AXI_USER_WIDTH ( AXI_USER_WIDTH           ),
@@ -456,83 +549,86 @@ module host_domain
      `else
        .InclUART       ( 1'b0                     )
      `endif
-     ) i_apb_subsystem (
-      .clk_i                  ( s_soc_clk                      ),
-      .rtc_i                  ( rtc_i                          ),
-      .rst_ni                 ( rst_ni                         ),
-      .bypass_clk_i           ( bypass_clk_i                   ),  
-      .rst_dm_i               ( s_dm_rst                       ),
-      .apb_uart_rx_i          ( apb_uart_rx_i                  ),
-      .apb_uart_tx_o          ( apb_uart_tx_o                  ),
-      .clk_cva6_o             ( s_clk_cva6                     ),
-      .clk_soc_o              ( s_soc_clk                      ),
-      .rstn_soc_sync_o        ( s_synch_soc_rst                ),
-      .rstn_global_sync_o     ( s_synch_global_rst             ),
-      .rstn_cva6_sync_o       ( s_rstn_cva6_sync               ),
-      .rstn_cluster_sync_o    ( s_rstn_cluster_sync            ),
-      .clk_cluster_o          ( clk_cluster_o                  ),
-      .cluster_en_sa_boot_o   ( cluster_en_sa_boot_o           ),
-      .cluster_fetch_en_o     ( cluster_fetch_en_o             ),
-      .llc_read_hit_cache_i   ( s_llc_read_hit_cache           ), 
-      .llc_read_miss_cache_i  ( s_llc_read_miss_cache          ), 
-      .llc_write_hit_cache_i  ( s_llc_write_hit_cache          ), 
-      .llc_write_miss_cache_i ( s_llc_write_miss_cache         ),
-                        
-      `ifdef XILINX_DDR
-      .hyper_axi_bus_slave    ( dummyaxibus                    ),                 
-      `else
-      .hyper_axi_bus_slave    ( mem_axi_bus                    ),                 
-      `endif                        
-      .axi_apb_slave          ( apb_axi_bus                    ),
-      .udma_tcdm_channels     ( udma_2_tcdm_channels           ),
-      .padframecfg_reg_master ( padframecfg_reg_master         ),
-      .serial_linkcfg_reg_master ( serial_linkcfg_reg_master   ),
+  ) i_apb_subsystem (
+    .clk_i                  ( s_soc_clk                      ),
+    .rtc_i                  ( rtc_i                          ),
+    .rst_ni                 ( rst_ni                         ),
+    .bypass_clk_i           ( bypass_clk_i                   ),  
+    .rst_dm_i               ( s_dm_rst                       ),
+    .apb_uart_rx_i          ( apb_uart_rx_i                  ),
+    .apb_uart_tx_o          ( apb_uart_tx_o                  ),
+    .clk_cva6_o             ( s_clk_cva6                     ),
+    .clk_soc_o              ( s_soc_clk                      ),
+    .rstn_soc_sync_o        ( s_synch_soc_rst                ),
+    .rstn_global_sync_o     ( s_synch_global_rst             ),
+    .rstn_cva6_sync_o       ( s_rstn_cva6_sync               ),
+    .rstn_cluster_sync_o    ( s_rstn_cluster_sync            ),
+    .clk_cluster_o          ( clk_cluster_o                  ),
+    .cluster_en_sa_boot_o   ( cluster_en_sa_boot_o           ),
+    .cluster_fetch_en_o     ( cluster_fetch_en_o             ),
+    .llc_read_hit_cache_i   ( s_llc_read_hit_cache           ), 
+    .llc_read_miss_cache_i  ( s_llc_read_miss_cache          ), 
+    .llc_write_hit_cache_i  ( s_llc_write_hit_cache          ), 
+    .llc_write_miss_cache_i ( s_llc_write_miss_cache         ),
+                      
+    `ifdef XILINX_DDR
+    .hyper_axi_bus_slave    ( dummyaxibus                    ),                 
+    `else
+    .hyper_axi_bus_slave    ( mem_axi_bus                    ),                 
+    `endif                        
+    .axi_apb_slave          ( apb_axi_bus                    ),
+    .udma_tcdm_channels     ( udma_2_tcdm_channels           ),
+    .padframecfg_reg_master ( padframecfg_reg_master         ),
+    .serial_linkcfg_reg_master ( serial_linkcfg_reg_master   ),
 
-      .events_o               ( s_udma_events                  ),
-      .can_irq_o              ( s_can_irq                      ),
+    .events_o               ( s_udma_events                  ),
+    .can_irq_o              ( s_can_irq                      ),
 
-      .qspi_to_pad            ( qspi_to_pad                    ),
-      .pad_to_qspi            ( pad_to_qspi                    ),
-      .i2c_to_pad             ( i2c_to_pad                     ),
-      .pad_to_i2c             ( pad_to_i2c                     ),
-  	  .pad_to_cam             ( pad_to_cam                     ),
-      .pad_to_uart            ( pad_to_uart                    ),
-      .uart_to_pad            ( uart_to_pad                    ),
-      .sdio_to_pad            ( sdio_to_pad                    ),
-      .pad_to_sdio            ( pad_to_sdio                    ),
-      .pwm_to_pad             ( pwm_to_pad                     ),
-      .can_to_pad             ( can_to_pad                     ),
-      .pad_to_can             ( pad_to_can                     ),
+    .qspi_to_pad            ( qspi_to_pad                    ),
+    .pad_to_qspi            ( pad_to_qspi                    ),
+    .i2c_to_pad             ( i2c_to_pad                     ),
+    .pad_to_i2c             ( pad_to_i2c                     ),
+    .pad_to_cam             ( pad_to_cam                     ),
+    .pad_to_uart            ( pad_to_uart                    ),
+    .uart_to_pad            ( uart_to_pad                    ),
+    .sdio_to_pad            ( sdio_to_pad                    ),
+    .pad_to_sdio            ( pad_to_sdio                    ),
+    .pwm_to_pad             ( pwm_to_pad                     ),
+    .can_to_pad             ( can_to_pad                     ),
+    .pad_to_can             ( pad_to_can                     ),
 
-      `ifndef XILINX_DDR
-      .pad_hyper_csn,
-      .pad_hyper_ck,
-      .pad_hyper_ckn,
-      .pad_hyper_rwds,
-      .pad_hyper_reset,
-      .pad_hyper_dq,
-      `endif
+    `ifndef XILINX_DDR
+    .pad_hyper_csn,
+    .pad_hyper_ck,
+    .pad_hyper_ckn,
+    .pad_hyper_rwds,
+    .pad_hyper_reset,
+    .pad_hyper_dq,
+    `endif
 
-      .gpio_to_pad            ( gpio_to_pad                    ),
-      .pad_to_gpio            ( pad_to_gpio                    )
-      );
+    .gpio_to_pad            ( gpio_to_pad                    ),
+    .pad_to_gpio            ( pad_to_gpio                    )
+    );
 
 
-   axi_lite_subsystem #(
-       .AXI_USER_WIDTH      ( AXI_USER_WIDTH    ),
-       .AXI_ADDR_WIDTH      ( AXI_ADDRESS_WIDTH ),
-       .AXI_DATA_WIDTH      ( AXI_DATA_WIDTH    ),
-       .AXI_LITE_ADDR_WIDTH ( AXI_LITE_AW       ),
-       .AXI_LITE_DATA_WIDTH ( AXI_LITE_DW       ) 
-   ) i_axi_lite_subsystem (
-       .clk_i                  ( s_soc_clk               ),
-       .rst_ni                 ( rst_ni                  ),
-       .host_axi_lite_slave    ( host_lite_bus           ),
-       .cluster_axi_lite_slave ( cluster_lite_slave      ),
-       .c2h_tlb_cfg_master     ( c2h_tlb_cfg_lite_master ),
-       .llc_cfg_master         ( llc_cfg_bus             ),
-       .h2c_irq_o              ( h2c_irq_o               ),
-       .c2h_irq_o              ( s_c2h_irq               )
-   );
+  axi_lite_subsystem #(
+    .AXI_USER_WIDTH      ( AXI_USER_WIDTH    ),
+    .AXI_ADDR_WIDTH      ( AXI_ADDRESS_WIDTH ),
+    .AXI_DATA_WIDTH      ( AXI_DATA_WIDTH    ),
+    .AXI_LITE_ADDR_WIDTH ( AXI_LITE_AW       ),
+    .AXI_LITE_DATA_WIDTH ( AXI_LITE_DW       ) 
+  ) i_axi_lite_subsystem (
+    .clk_i                  ( s_soc_clk               ),
+    .rst_ni                 ( rst_ni                  ),
+    .host_axi_lite_slave    ( host_lite_bus           ),
+    .cluster_axi_lite_slave ( cluster_lite_slave      ),
+    .c2h_tlb_cfg_master     ( c2h_tlb_cfg_lite_master ),
+    .llc_cfg_master         ( llc_cfg_bus             ),
+`ifdef PMU_BLOCK
+    .pmu_cfg_master         ( pmu_cfg_bus             ),
+`endif      
+    .h2c_irq_o              ( h2c_irq_o               ),
+    .c2h_irq_o              ( s_c2h_irq               )
+  );
                       
 endmodule

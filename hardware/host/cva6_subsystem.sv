@@ -16,6 +16,7 @@
 `include "axi/assign.svh"
 `include "register_interface/typedef.svh"
 `include "register_interface/assign.svh"
+`define PMU_BLOCK
 
 module cva6_subsystem 
   import axi_pkg::xbar_cfg_t;
@@ -25,6 +26,9 @@ module cva6_subsystem
   parameter int unsigned AXI_USER_WIDTH    = 1,
   parameter int unsigned AXI_ADDRESS_WIDTH = 64,
   parameter int unsigned AXI_DATA_WIDTH    = 64,
+`ifdef PMU_BLOCK
+  parameter int unsigned PMU_NUM_COUNTER   = 64,
+`endif
 `ifdef DROMAJO
   parameter bit          InclSimDTM        = 1'b0,
 `else
@@ -63,6 +67,11 @@ module cva6_subsystem
   input  logic             jtag_TRSTn,
   output logic             jtag_TDO_data,
   output logic             jtag_TDO_driven,
+
+  `ifdef PMU_BLOCK
+  // PMU
+  input  logic [PMU_NUM_COUNTER-1:0]  pmu_intr_i,
+  `endif
 
   //SERIAL LINK
   output ser_link_to_pad serial_link_to_pad,
@@ -510,9 +519,9 @@ module cva6_subsystem
     .USER_WIDTH ( AXI_USER_WIDTH           )
   ) soc2cluster_cut (
     .clk_i,
-    .rst_ni ( ndmreset_n                ),
-    .in     ( cluster_axi_master_cut    ),
-    .out    ( cluster_axi_master        )
+    .rst_ni     ( ndmreset_n               ),
+    .in         ( cluster_axi_master_cut   ),
+    .out        ( cluster_axi_master       )
   );
    
   // ---------------
@@ -785,6 +794,9 @@ module cva6_subsystem
     .AxiAddrWidth ( AXI_ADDRESS_WIDTH        ),
     .AxiDataWidth ( AXI_DATA_WIDTH           ),
     .AxiIdWidth   ( ariane_soc::IdWidthSlave ),
+`ifdef PMU_BLOCK
+    .PMU_NUM_COUNTER  ( PMU_NUM_COUNTER          ),
+`endif    
 `ifdef TARGET_SYNTHESIS
     .InclUART     ( 1'b1                     ),
 `else
@@ -812,6 +824,11 @@ module cva6_subsystem
     .irq_o           ( irqs                         ),
     .rx_i            ( cva6_uart_rx_i               ),
     .tx_o            ( cva6_uart_tx_o               ),
+
+    `ifdef PMU_BLOCK
+    .pmu_intr_i      ( pmu_intr_i                   ),
+    `endif
+
     .eth_txck        ( ),
     .eth_rxck        ( ),
     .eth_rxctl       ( ),
@@ -825,78 +842,6 @@ module cva6_subsystem
     .mdc             ( )
   );
 
-  // `AXI_ASSIGN_FROM_REQ(slave[0], axi_ariane_req_0)
-  // `AXI_ASSIGN_TO_RESP(axi_ariane_resp_0, slave[0])
-
-  // `AXI_ASSIGN_FROM_REQ(slave[4], axi_ariane_req_1)
-  // `AXI_ASSIGN_TO_RESP(axi_ariane_resp_1, slave[4])
-
-  // `AXI_ASSIGN_FROM_REQ(slave[5], axi_ariane_req_2)
-  // `AXI_ASSIGN_TO_RESP(axi_ariane_resp_2, slave[5])
-
-  // `AXI_ASSIGN_FROM_REQ(slave[6], axi_ariane_req_3)
-  // `AXI_ASSIGN_TO_RESP(axi_ariane_resp_3, slave[6])
-
-  // ariane #(
-  //   .ArianeCfg  ( ariane_soc::ArianeSocCfg )
-  // ) i_ariane_0 (
-  //   .clk_i                ( clk_i               ),
-  //   .rst_ni               ( rst_ni              ),
-  //   .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
-  //   .hart_id_i            ( 64'd0           ),
-  //   .irq_i                ( irqs[1:0]               ), // async signal
-  //   .ipi_i                ( ipi[0]               ), // async signal
-  //   .time_irq_i           ( timer_irq[0]          ), // async signal
-  //   .debug_req_i          ( debug_req_core[0]         ), // async signal
-  //   .axi_req_o            ( axi_ariane_req_0      ),
-  //   .axi_resp_i           ( axi_ariane_resp_0     )
-  // );
-
-  // ariane #(
-  //   .ArianeCfg  ( ariane_soc::ArianeSocCfg )
-  // ) i_ariane_1 (
-  //   .clk_i                ( clk_i               ),
-  //   .rst_ni               ( rst_ni              ),
-  //   .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
-  //   .hart_id_i            ( 64'd1           ),
-  //   .irq_i                ( irqs[3:2]               ), // async signal
-  //   .ipi_i                ( ipi[1]               ), // async signal
-  //   .time_irq_i           ( timer_irq[1]          ), // async signal
-  //   .debug_req_i          ( debug_req_core[1]         ), // async signal
-  //   .axi_req_o            ( axi_ariane_req_1      ),
-  //   .axi_resp_i           ( axi_ariane_resp_1     )
-  // );
-
-  // ariane #(
-  //   .ArianeCfg  ( ariane_soc::ArianeSocCfg )
-  // ) i_ariane_2 (
-  //   .clk_i                ( clk_i               ),
-  //   .rst_ni               ( rst_ni              ),
-  //   .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
-  //   .hart_id_i            ( 64'd2           ),
-  //   .irq_i                ( irqs[5:4]               ), // async signal
-  //   .ipi_i                ( ipi[2]               ), // async signal
-  //   .time_irq_i           ( timer_irq[2]          ), // async signal
-  //   .debug_req_i          ( debug_req_core[2]         ), // async signal
-  //   .axi_req_o            ( axi_ariane_req_2      ),
-  //   .axi_resp_i           ( axi_ariane_resp_2     )
-  // );
-
-  // ariane #(
-  //   .ArianeCfg  ( ariane_soc::ArianeSocCfg )
-  // ) i_ariane_3 (
-  //   .clk_i                ( clk_i               ),
-  //   .rst_ni               ( rst_ni              ),
-  //   .boot_addr_i          ( ariane_soc::ROMBase ), // start fetching from ROM
-  //   .hart_id_i            ( 64'd3           ),
-  //   .irq_i                ( irqs[7:6]               ), // async signal
-  //   .ipi_i                ( ipi[3]               ), // async signal
-  //   .time_irq_i           ( timer_irq[3]          ), // async signal
-  //   .debug_req_i          ( debug_req_core[3]         ), // async signal
-  //   .axi_req_o            ( axi_ariane_req_3      ),
-  //   .axi_resp_i           ( axi_ariane_resp_3     )
-  // );
-
   // ---------------
   // Core #0
   // ---------------
@@ -904,14 +849,14 @@ module cva6_subsystem
   cva6_synth_wrap #(
     .LOG_DEPTH (1)
   ) i_ariane_wrap_0 (
-    .clk_i                ( cva6_clk_i                  ),
-    .rst_ni               ( cva6_rst_ni                 ),
-    .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
-    .hart_id_i            ( 64'd0                       ),
-    .irq_i                ( irqs[1:0]                   ), // async signal
-    .ipi_i                ( ipi[0]                      ), // async signal
-    .time_irq_i           ( timer_irq[0]                ), // async signal
-    .debug_req_i          ( debug_req_core[0]              ), // async signal
+    .clk_i                ( cva6_clk_i                    ),
+    .rst_ni               ( cva6_rst_ni                   ),
+    .boot_addr_i          ( ariane_soc::ROMBase           ), // start fetching from ROM
+    .hart_id_i            ( 64'd0                         ),
+    .irq_i                ( irqs[1:0]                     ), // async signal
+    .ipi_i                ( ipi[0]                        ), // async signal
+    .time_irq_i           ( timer_irq[0]                  ), // async signal
+    .debug_req_i          ( debug_req_core[0]             ), // async signal
     .data_master_aw_wptr_o( cva6_axi_master_dst_0.aw_wptr ),
     .data_master_aw_data_o( cva6_axi_master_dst_0.aw_data ), 
     .data_master_aw_rptr_i( cva6_axi_master_dst_0.aw_rptr ),
@@ -936,10 +881,10 @@ module cva6_subsystem
     .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
     .LOG_DEPTH      ( 1                   )
   ) cva6_0_to_xbar (
-    .src(cva6_axi_master_dst_0),
-    .dst_clk_i(clk_i),
-    .dst_rst_ni(ndmreset_n),
-    .dst(slave[0])
+    .src            ( cva6_axi_master_dst_0 ),
+    .dst_clk_i      ( clk_i                 ),
+    .dst_rst_ni     ( ndmreset_n            ),
+    .dst            ( slave[0]              )
   );
 
   // ---------------
@@ -949,14 +894,14 @@ module cva6_subsystem
   cva6_synth_wrap #(
     .LOG_DEPTH (1)
   ) i_ariane_wrap_1 (
-    .clk_i                ( cva6_clk_i                  ),
-    .rst_ni               ( cva6_rst_ni                 ),
-    .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
-    .hart_id_i            ( 64'd1                       ),
-    .irq_i                ( irqs[3:2]                   ), // async signal
-    .ipi_i                ( ipi[1]                      ), // async signal
-    .time_irq_i           ( timer_irq[1]                ), // async signal
-    .debug_req_i          ( debug_req_core[1]              ), // async signal
+    .clk_i                ( cva6_clk_i                    ),
+    .rst_ni               ( cva6_rst_ni                   ),
+    .boot_addr_i          ( ariane_soc::ROMBase           ), // start fetching from ROM
+    .hart_id_i            ( 64'd1                         ),
+    .irq_i                ( irqs[3:2]                     ), // async signal
+    .ipi_i                ( ipi[1]                        ), // async signal
+    .time_irq_i           ( timer_irq[1]                  ), // async signal
+    .debug_req_i          ( debug_req_core[1]             ), // async signal
     .data_master_aw_wptr_o( cva6_axi_master_dst_1.aw_wptr ),
     .data_master_aw_data_o( cva6_axi_master_dst_1.aw_data ), 
     .data_master_aw_rptr_i( cva6_axi_master_dst_1.aw_rptr ),
@@ -981,10 +926,10 @@ module cva6_subsystem
     .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
     .LOG_DEPTH      ( 1                   )
   ) cva6_1_to_xbar (
-    .src(cva6_axi_master_dst_1),
-    .dst_clk_i(clk_i),
-    .dst_rst_ni(ndmreset_n),
-    .dst(slave[4])
+    .src            ( cva6_axi_master_dst_1 ),
+    .dst_clk_i      ( clk_i                 ),
+    .dst_rst_ni     ( ndmreset_n            ),
+    .dst            ( slave[4]              )
   );
 
   // ---------------
@@ -994,14 +939,14 @@ module cva6_subsystem
   cva6_synth_wrap #(
     .LOG_DEPTH (1)
   ) i_ariane_wrap_2 (
-    .clk_i                ( cva6_clk_i                  ),
-    .rst_ni               ( cva6_rst_ni                 ),
-    .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
-    .hart_id_i            ( 64'd2                       ),
-    .irq_i                ( irqs[5:4]                   ), // async signal
-    .ipi_i                ( ipi[2]                      ), // async signal
-    .time_irq_i           ( timer_irq[2]                ), // async signal
-    .debug_req_i          ( debug_req_core[2]              ), // async signal
+    .clk_i                ( cva6_clk_i                    ),
+    .rst_ni               ( cva6_rst_ni                   ),
+    .boot_addr_i          ( ariane_soc::ROMBase           ), // start fetching from ROM
+    .hart_id_i            ( 64'd2                         ),
+    .irq_i                ( irqs[5:4]                     ), // async signal
+    .ipi_i                ( ipi[2]                        ), // async signal
+    .time_irq_i           ( timer_irq[2]                  ), // async signal
+    .debug_req_i          ( debug_req_core[2]             ), // async signal
     .data_master_aw_wptr_o( cva6_axi_master_dst_2.aw_wptr ),
     .data_master_aw_data_o( cva6_axi_master_dst_2.aw_data ), 
     .data_master_aw_rptr_i( cva6_axi_master_dst_2.aw_rptr ),
@@ -1026,10 +971,10 @@ module cva6_subsystem
     .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
     .LOG_DEPTH      ( 1                   )
   ) cva6_2_to_xbar (
-    .src(cva6_axi_master_dst_2),
-    .dst_clk_i(clk_i),
-    .dst_rst_ni(ndmreset_n),
-    .dst(slave[5])
+    .src            ( cva6_axi_master_dst_2 ),
+    .dst_clk_i      ( clk_i                 ),
+    .dst_rst_ni     ( ndmreset_n            ),
+    .dst            ( slave[5]              )
   );
 
   // // ---------------
@@ -1039,13 +984,13 @@ module cva6_subsystem
   cva6_synth_wrap #(
     .LOG_DEPTH (1)
   ) i_ariane_wrap_3 (
-    .clk_i                ( cva6_clk_i                  ),
-    .rst_ni               ( cva6_rst_ni                 ),
-    .boot_addr_i          ( ariane_soc::ROMBase         ), // start fetching from ROM
-    .hart_id_i            ( 64'd3                       ),
-    .irq_i                ( irqs[7:6]                   ), // async signal
-    .ipi_i                ( ipi[3]                      ), // async signal
-    .time_irq_i           ( timer_irq[3]                ), // async signal
+    .clk_i                ( cva6_clk_i                    ),
+    .rst_ni               ( cva6_rst_ni                   ),
+    .boot_addr_i          ( ariane_soc::ROMBase           ), // start fetching from ROM
+    .hart_id_i            ( 64'd3                         ),
+    .irq_i                ( irqs[7:6]                     ), // async signal
+    .ipi_i                ( ipi[3]                        ), // async signal
+    .time_irq_i           ( timer_irq[3]                  ), // async signal
     .debug_req_i          ( debug_req_core[3]             ), // async signal
     .data_master_aw_wptr_o( cva6_axi_master_dst_3.aw_wptr ),
     .data_master_aw_data_o( cva6_axi_master_dst_3.aw_data ), 
@@ -1071,10 +1016,10 @@ module cva6_subsystem
     .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
     .LOG_DEPTH      ( 1                   )
   ) cva6_3_to_xbar (
-    .src(cva6_axi_master_dst_3),
-    .dst_clk_i(clk_i),
-    .dst_rst_ni(ndmreset_n),
-    .dst(slave[6])
+    .src            ( cva6_axi_master_dst_3 ),
+    .dst_clk_i      ( clk_i                 ),
+    .dst_rst_ni     ( ndmreset_n            ),
+    .dst            ( slave[6]              )
   );
    
 endmodule

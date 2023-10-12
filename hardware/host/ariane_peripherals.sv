@@ -9,9 +9,13 @@
 // specific language governing permissions and limitations under the License.
 
 // Xilinx Peripehrals
+`define PMU_BLOCK
 module ariane_peripherals 
     import udma_subsystem_pkg::N_CAN;
 #(
+`ifdef PMU_BLOCK
+    parameter  int unsigned PMU_NUM_COUNTER = 64,
+`endif
     parameter  int AxiAddrWidth = -1,
     parameter  int AxiDataWidth = -1,
     parameter  int AxiIdWidth   = -1,
@@ -34,6 +38,12 @@ module ariane_peripherals
     input  logic            cluster_eoc_i   ,
     input  logic [N_CAN-1:0] can_irq_i      ,
     input  logic            cl_dma_pe_evt_i ,
+    
+    `ifdef PMU_BLOCK
+    // PMU
+    input  logic [PMU_NUM_COUNTER-1:0]  pmu_intr_i,
+    `endif
+
     output logic [ariane_soc::NumTargets-1:0]      irq_o           ,
     // UART
     input  logic            rx_i            ,
@@ -76,15 +86,26 @@ module ariane_peripherals
     // 1. PLIC
     // ---------------
     logic [ariane_soc::NumSources-1:0] irq_sources;
+    logic [ariane_soc::NumSources-1:0] irq_le;    
 
-    assign irq_sources[7]                            = c2h_irq_i;
-    assign irq_sources[8]                            = cluster_eoc_i;
-    assign irq_sources[14:9]                         = '0; // reserved for future use
-    assign irq_sources[138:15]                       = udma_evt_i[123:0];
-    assign irq_sources[139]                          = cl_dma_pe_evt_i;
-    assign irq_sources[140]                          = can_irq_i[0];
-    assign irq_sources[141]                          = can_irq_i[1];
-    assign irq_sources[ariane_soc::NumSources-1:142] = '0;
+    assign irq_sources[7]       = c2h_irq_i;
+    assign irq_sources[8]       = cluster_eoc_i;
+    assign irq_sources[14:9]    = '0; // reserved for future use
+    assign irq_sources[138:15]  = udma_evt_i[123:0];
+    assign irq_sources[139]     = cl_dma_pe_evt_i;
+    assign irq_sources[140]     = can_irq_i[0];
+    assign irq_sources[141]     = can_irq_i[1];
+    assign irq_le[141:0]        = '0;
+
+`ifdef PMU_BLOCK
+    assign irq_sources[142+PMU_NUM_COUNTER-1:142]                     = pmu_intr_i;
+    assign irq_sources[ariane_soc::NumSources-1:142+PMU_NUM_COUNTER]  = '0;
+    assign irq_le[142+PMU_NUM_COUNTER-1:142]	                        = {PMU_NUM_COUNTER{1'b1}};
+    assign irq_le[ariane_soc::NumSources-1:142+PMU_NUM_COUNTER]       = '0; 
+`else
+    assign irq_sources[ariane_soc::NumSources-1:142]                  = '0;
+    assign irq_le[ariane_soc::NumSources-1:142]                       = '0;
+`endif
 
     REG_BUS #(
         .ADDR_WIDTH ( 32 ),
@@ -202,7 +223,7 @@ module ariane_peripherals
       .rst_ni,
       .req_i         ( plic_req    ),
       .resp_o        ( plic_resp   ),
-      .le_i          ( '0          ), // 0:level 1:edge
+      .le_i          ( irq_le      ), // 0:level 1:edge
       .irq_sources_i ( irq_sources ),
       .eip_targets_o ( irq_o       )
     );
