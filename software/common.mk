@@ -41,7 +41,7 @@ clean:
 
 build:
 	$(RISCV_GCC) $(RISCV_FLAGS) -T $(inc_dir)/test.ld $(RISCV_LINK_OPTS) $(cc-elf-y) $(inc_dir)/crt.S  $(inc_dir)/syscalls.c -L $(inc_dir) $(APP).c -o $(APP).riscv
-
+	
 dis:
 	$(RISCV_OBJDUMP) $(APP).riscv > $(APP).dump
 
@@ -49,7 +49,8 @@ dump:
 	$(SW_HOME)/elf_to_slm.py --binary=$(APP).riscv --vectors=hyperram0.slm
 	cp hyperram*.slm  $(HW_HOME)/
 	cp $(APP).riscv  $(HW_HOME)/
-	echo $(APP).riscv | tee -a  $(HW_HOME)/regression.list
+# echo $(APP).riscv | tee -a  $(HW_HOME)/regression.list
+	echo $(APP).riscv
 
 all: clean build dis dump
 
