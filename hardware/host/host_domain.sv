@@ -18,6 +18,7 @@
 `include "axi/assign.svh"
 `include "axi/typedef.svh"
 `include "common_cells/registers.svh"
+`define PMU_BLOCK
 
 module host_domain 
   import axi_pkg::xbar_cfg_t;
@@ -164,7 +165,7 @@ module host_domain
     ariane_axi_soc::req_lite_t  axi_pmu_cfg_req;
     ariane_axi_soc::resp_lite_t axi_pmu_cfg_res;
 
-    localparam int unsigned PMU_NUM_COUNTER    = 4;
+    localparam int unsigned PMU_NUM_COUNTER    = 32;
     localparam int unsigned PNU_COUNTER_WIDTH  = 64;
     logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
   `endif 
@@ -175,7 +176,15 @@ module host_domain
     ariane_axi_soc::addr_t   start_addr;
     ariane_axi_soc::addr_t   end_addr;
   } rule_full_t;
+
+  localparam LLC_SET_ASSOC  = 32'd32;
+  localparam LLC_NUM_LINES  = 32'd1024;
+  localparam LLC_NUM_BLOCKS = 32'd8;
   
+  // localparam LLC_SET_ASSOC  = 32'd32;
+  // localparam LLC_NUM_LINES  = 32'd1024;
+  // localparam LLC_NUM_BLOCKS = 32'd8;
+
   // When changing these parameters, change the L2 size accordingly in ariane_soc_pkg
   localparam NB_L2_BANKS = 8;
   localparam L2_BANK_SIZE = 16384; // 2^14 words (32 bits)
@@ -261,7 +270,18 @@ module host_domain
     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave+1 ),
     `endif
     .AXI_USER_WIDTH ( AXI_USER_WIDTH             )
-  ) mem_axi_bus ();    
+  ) mem_axi_bus (); 
+
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH          ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH             ),
+    `ifdef EXCLUDE_LLC
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave   ),
+    `else
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave+1 ),
+    `endif
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH             )
+  ) mem_axi_bus_spu_o_bus ();   
 
 `ifdef PMU_BLOCK
   AXI_BUS #(
@@ -272,37 +292,83 @@ module host_domain
   ) hyper_axi_spu_o_bus ();
 
   SPU_INTF #(
-    .NUM_EVENT        ( 5 ),
-    .EVENT_INFO_BITS  ( 8 ),
-    .NUM_SOURCE       ( 1 )
+    // Static configuration parameters of the cache.
+    .SetAssociativity   ( LLC_SET_ASSOC             ),
+    .NumLines           ( LLC_NUM_LINES             ),
+    .NumBlocks          ( LLC_NUM_BLOCKS            ),
+    // AXI4 Specifications
+    .IdWidthMasters     ( ariane_soc::IdWidth       ),
+    .IdWidthSlaves      ( ariane_soc::IdWidthSlave  ),
+    .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
+    .DataWidth          ( AXI_DATA_WIDTH            ),
+    // Size of burst in cachelines (0) or bytes (1)?
+    .SizeInBytes        ( 0                         ),
+    // Set minimum bits that must be used for response latency.
+    .MinLatencyBits     ( 16                        )
   ) spu_llc_in ();
 
-  spu_top #(
-    .CacheCfg            ( CacheCfg             ),
-    .AXICfg              ( AXICfg               )
-  ) spu_cpu_llc (
-    .clk_i               ( s_soc_clk            ),
-    .rst_ni              ( s_synch_soc_rst      ),
-    .spu_slv             ( hyper_axi_bus        ),
-    .spu_mst             ( hyper_axi_spu_o_bus  ),
-    .e_out               ( spu_llc_in           )
-  );
-
-   SPU_INTF #(
-    .NUM_EVENT        ( 5 ),
-    .EVENT_INFO_BITS  ( 8 ),
-    .NUM_SOURCE       ( 1 )
+  SPU_INTF #(
+    // Static configuration parameters of the cache.
+    .SetAssociativity   ( LLC_SET_ASSOC             ),
+    .NumLines           ( LLC_NUM_LINES             ),
+    .NumBlocks          ( LLC_NUM_BLOCKS            ),
+    // AXI4 Specifications
+    .IdWidthMasters     ( ariane_soc::IdWidth       ),
+    .IdWidthSlaves      ( ariane_soc::IdWidthSlave+1),
+    .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
+    .DataWidth          ( AXI_DATA_WIDTH            ),
+    // Size of burst in cachelines (0) or bytes (1)?
+    .SizeInBytes        ( 0                         ),
+    // Set minimum bits that must be used for response latency.
+    .MinLatencyBits     ( 16                        )
   ) spu_llc_out ();
 
   spu_top #(
-    .CacheCfg            ( CacheCfg             ),
-    .AXICfg              ( AXICfg               )
+    // Static configuration parameters of the cache.
+    .SetAssociativity   ( LLC_SET_ASSOC             ),
+    .NumLines           ( LLC_NUM_LINES             ),
+    .NumBlocks          ( LLC_NUM_BLOCKS            ),
+    // AXI4 Specifications
+    .IdWidthMasters     ( ariane_soc::IdWidth       ),
+    .IdWidthSlaves      ( ariane_soc::IdWidthSlave  ),
+    .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
+    .DataWidth          ( AXI_DATA_WIDTH            ),
+    // Size of burst in cachelines (0) or bytes (1)?
+    .SizeInBytes        ( 0                         ),
+    // Set minimum bits that must be used for response latency.
+    .MinLatencyBits     ( 16                        ),
+    .CAM_DEPTH          ( 17                        ),
+    .FIFO_DEPTH         (  8                        )
+  ) spu_cpu_llc (
+    .clk_i              ( s_soc_clk                 ),
+    .rst_ni             ( s_synch_soc_rst           ),
+    .spu_slv            ( hyper_axi_bus             ),
+    .spu_mst            ( hyper_axi_spu_o_bus       ),
+    .e_out              ( spu_llc_in                )
+  );
+
+  spu_top #(
+    // Static configuration parameters of the cache.
+    .SetAssociativity   ( LLC_SET_ASSOC             ),
+    .NumLines           ( LLC_NUM_LINES             ),
+    .NumBlocks          ( LLC_NUM_BLOCKS            ),
+    // AXI4 Specifications
+    .IdWidthMasters     ( ariane_soc::IdWidth       ),
+    .IdWidthSlaves      ( ariane_soc::IdWidthSlave+1),
+    .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
+    .DataWidth          ( AXI_DATA_WIDTH            ),
+    // Size of burst in cachelines (0) or bytes (1)?
+    .SizeInBytes        ( 1                         ),
+    // Set minimum bits that must be used for response latency.
+    .MinLatencyBits     ( 16                        ),
+    .CAM_DEPTH          ( 17                        ),
+    .FIFO_DEPTH         (  8                        )
   ) spu_llc_mem (
-    .clk_i               ( s_soc_clk            ),
-    .rst_ni              ( s_synch_soc_rst      ),
-    .spu_slv             ( hyper_axi_bus        ),
-    .spu_mst             ( hyper_axi_spu_o_bus  ),
-    .e_out               ( spu_llc_out          )
+    .clk_i              ( s_soc_clk                 ),
+    .rst_ni             ( s_synch_soc_rst           ),
+    .spu_slv            ( mem_axi_bus_spu_o_bus     ),
+    .spu_mst            ( mem_axi_bus               ),
+    .e_out              ( spu_llc_out               )
   );
 
   pmu_top #(
@@ -310,13 +376,15 @@ module host_domain
     .NUM_EVU          ( PNU_COUNTER_WIDTH             ),
     .AxiLiteAddrWidth ( AXI_LITE_AW                   ),
     .AxiLiteDataWidth ( AXI_LITE_DW                   ),
+    .req_t            ( ariane_axi_soc::req_t         ),
+    .resp_t           ( ariane_axi_soc::resp_t        ),
     .lite_req_t       ( ariane_axi_soc::req_lite_t    ),
     .lite_resp_t      ( ariane_axi_soc::resp_lite_t   )
-  ) (
+  ) i_pmu_top (
     .clk_i            ( s_soc_clk                     ),
     .rst_ni           ( s_synch_soc_rst               ),
-    .spu1_in          ( spu_llc_in                    ),
-    .spu2_in          ( spu_llc_in                    ),
+    .port_1_i         ( spu_llc_in                    ),
+    .port_2_i         ( spu_llc_out                   ),
     .conf_req_i       ( axi_pmu_cfg_req               ),
     .conf_resp_o      ( axi_pmu_cfg_res               ),
     .intr_o           ( pmu_intr_o                    )
@@ -327,8 +395,8 @@ module host_domain
   .AXI_DATA_WIDTH (AXI_LITE_DW)
   ) pmu_cfg_bus();
 
-  `AXI_LITE_ASSIGN_TO_REQ(axi_pmu_cfg_req,pmu_cfg_bus)
-  `AXI_LITE_ASSIGN_FROM_RESP(pmu_cfg_bus,axi_pmu_cfg_res)
+  `AXI_LITE_ASSIGN_TO_REQ( axi_pmu_cfg_req, pmu_cfg_bus )
+  `AXI_LITE_ASSIGN_FROM_RESP( pmu_cfg_bus, axi_pmu_cfg_res )
 `endif
 
   AXI_LITE #(
@@ -338,7 +406,6 @@ module host_domain
   
   XBAR_TCDM_BUS axi_bridge_2_interconnect[AXI64_2_TCDM32_N_PORTS]();
   XBAR_TCDM_BUS udma_2_tcdm_channels[NB_UDMA_TCDM_CHANNEL]();
-
 
 `ifdef XILINX_DDR
   AXI_BUS #(
@@ -395,24 +462,28 @@ module host_domain
 `else
 
 `ifdef PMU_BLOCK
+  // Converts AXI BUS signals to request packets.
   `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_spu_o_bus )
   `AXI_ASSIGN_FROM_RESP( hyper_axi_spu_o_bus, axi_cpu_res )
+  // Converts request packets to AXI Bus signals.
+  `AXI_ASSIGN_FROM_REQ( mem_axi_bus_spu_o_bus, axi_mem_req )
+  `AXI_ASSIGN_TO_RESP( axi_mem_res, mem_axi_bus_spu_o_bus )
 `else
+  // Converts AXI BUS signals to request packets.
   `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_bus )
   `AXI_ASSIGN_FROM_RESP( hyper_axi_bus, axi_cpu_res )
+  // Converts request packets to AXI Bus signals.
+  `AXI_ASSIGN_FROM_REQ( mem_axi_bus, axi_mem_req )
+  `AXI_ASSIGN_TO_RESP( axi_mem_res, mem_axi_bus )
 `endif 
 
-  `AXI_ASSIGN_TO_REQ(axi_cpu_req,hyper_axi_bus)
-  `AXI_ASSIGN_FROM_RESP(hyper_axi_bus,axi_cpu_res)
-  `AXI_ASSIGN_FROM_REQ(mem_axi_bus,axi_mem_req)
-  `AXI_ASSIGN_TO_RESP(axi_mem_res,mem_axi_bus)
   `AXI_LITE_ASSIGN_TO_REQ(axi_llc_cfg_req,llc_cfg_bus)
   `AXI_LITE_ASSIGN_FROM_RESP(llc_cfg_bus,axi_llc_cfg_res)
   
   axi_llc_top #(
-    .SetAssociativity ( 32'd8                          ),
-    .NumLines         ( 32'd256                        ),
-    .NumBlocks        ( 32'd8                          ),
+    .SetAssociativity ( LLC_SET_ASSOC                  ),
+    .NumLines         ( LLC_NUM_LINES                  ),
+    .NumBlocks        ( LLC_NUM_BLOCKS                 ),
     .AxiIdWidth       ( ariane_soc::IdWidthSlave       ),
     .AxiAddrWidth     ( AXI_ADDRESS_WIDTH              ),
     .AxiDataWidth     ( AXI_DATA_WIDTH                 ),
