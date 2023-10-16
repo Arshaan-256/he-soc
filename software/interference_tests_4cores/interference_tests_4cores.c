@@ -1,8 +1,8 @@
 #include "pmu_test_func.c"
 #include "encoding.h"
 
-#define RD_ON_RD
-// #define WR_ON_WR
+// #define RD_ON_RD
+#define WR_ON_WR
 // #define RD_ONLY
 // #define WR_ONLY
 
@@ -162,9 +162,9 @@ void test_cache() {
       }
     }
 
-    volatile uint32_t sleep = 10000;
     end_cycle = read_csr(cycle) - curr_cycle;
     asm volatile("csrr %0, 0xb04" : "=r" (end_miss) : );    
+    volatile uint32_t sleep = 10000;
 
     // Size in Bytes.
     asm volatile ("fence");
@@ -174,6 +174,8 @@ void test_cache() {
 
     // Load-store cycle count.
     asm volatile ("fence");
+    // This line assumes that the repeat only has 4 instructions including the LD/ST.
+    // This is compiler-dependent but I verified it when I wrote it.
     volatile uint64_t ld_sd_cc = (end_cycle)/(100*a_len2/2)-3;
     printf("%d,", ld_sd_cc);
     uart_wait_tx_done();
@@ -188,6 +190,8 @@ void test_cache() {
   }
 }
 
+// Sometimes the UART skips over output.
+// Gives the UART more time to finish output before filling up the UART Tx FIFO with more data.
 inline void my_sleep() {
   uint32_t sleep = 5000;
   for (volatile uint32_t i=0; i<sleep; i++) {
