@@ -1,0 +1,9 @@
+monitor reset halt
+thread 1
+load inteference_tests_4cores_1.riscv
+thread 2
+load inteference_tests_4cores_2.riscv
+thread 3
+load inteference_tests_4cores_3.riscv
+thread 4
+load inteference_tests_4cores_4.riscv
