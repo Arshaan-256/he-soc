@@ -165,8 +165,8 @@ module host_domain
     ariane_axi_soc::req_lite_t  axi_pmu_cfg_req;
     ariane_axi_soc::resp_lite_t axi_pmu_cfg_res;
 
-    localparam int unsigned PMU_NUM_COUNTER    = 32;
-    localparam int unsigned PNU_COUNTER_WIDTH  = 64;
+    localparam int unsigned PMU_NUM_COUNTER        = 4;
+    localparam int unsigned EVENT_INFO_BITS_LLC_IN = 16;
     logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
   `endif 
    
@@ -291,37 +291,45 @@ module host_domain
       .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
   ) hyper_axi_spu_o_bus ();
 
-  SPU_INTF #(
-    // Static configuration parameters of the cache.
-    .SetAssociativity   ( LLC_SET_ASSOC             ),
-    .NumLines           ( LLC_NUM_LINES             ),
-    .NumBlocks          ( LLC_NUM_BLOCKS            ),
-    // AXI4 Specifications
-    .IdWidthMasters     ( ariane_soc::IdWidth       ),
-    .IdWidthSlaves      ( ariane_soc::IdWidthSlave  ),
-    .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
-    .DataWidth          ( AXI_DATA_WIDTH            ),
-    // Size of burst in cachelines (0) or bytes (1)?
-    .SizeInBytes        ( 0                         ),
-    // Set minimum bits that must be used for response latency.
-    .MinLatencyBits     ( 16                        )
+  PMU_INTF #(
+    .EVENT_INFO_BITS    ( 16                        )
   ) spu_llc_in ();
 
-  SPU_INTF #(
-    // Static configuration parameters of the cache.
-    .SetAssociativity   ( LLC_SET_ASSOC             ),
-    .NumLines           ( LLC_NUM_LINES             ),
-    .NumBlocks          ( LLC_NUM_BLOCKS            ),
-    // AXI4 Specifications
-    .IdWidthMasters     ( ariane_soc::IdWidth       ),
-    .IdWidthSlaves      ( ariane_soc::IdWidthSlave+1),
-    .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
-    .DataWidth          ( AXI_DATA_WIDTH            ),
-    // Size of burst in cachelines (0) or bytes (1)?
-    .SizeInBytes        ( 0                         ),
-    // Set minimum bits that must be used for response latency.
-    .MinLatencyBits     ( 16                        )
+  PMU_INTF #(
+    .EVENT_INFO_BITS    ( 16                        )
   ) spu_llc_out ();
+
+  // SPU_INTF #(
+  //   // Static configuration parameters of the cache.
+  //   .SetAssociativity   ( LLC_SET_ASSOC             ),
+  //   .NumLines           ( LLC_NUM_LINES             ),
+  //   .NumBlocks          ( LLC_NUM_BLOCKS            ),
+  //   // AXI4 Specifications
+  //   .IdWidthMasters     ( ariane_soc::IdWidth       ),
+  //   .IdWidthSlaves      ( ariane_soc::IdWidthSlave  ),
+  //   .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
+  //   .DataWidth          ( AXI_DATA_WIDTH            ),
+  //   // Size of burst in cachelines (0) or bytes (1)?
+  //   .SizeInBytes        ( 0                         ),
+  //   // Set minimum bits that must be used for response latency.
+  //   .MinLatencyBits     ( 16                        )
+  // ) spu_llc_in ();
+
+  // SPU_INTF #(
+  //   // Static configuration parameters of the cache.
+  //   .SetAssociativity   ( LLC_SET_ASSOC             ),
+  //   .NumLines           ( LLC_NUM_LINES             ),
+  //   .NumBlocks          ( LLC_NUM_BLOCKS            ),
+  //   // AXI4 Specifications
+  //   .IdWidthMasters     ( ariane_soc::IdWidth       ),
+  //   .IdWidthSlaves      ( ariane_soc::IdWidthSlave+1),
+  //   .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
+  //   .DataWidth          ( AXI_DATA_WIDTH            ),
+  //   // Size of burst in cachelines (0) or bytes (1)?
+  //   .SizeInBytes        ( 0                         ),
+  //   // Set minimum bits that must be used for response latency.
+  //   .MinLatencyBits     ( 16                        )
+  // ) spu_llc_out ();
 
   spu_top #(
     // Static configuration parameters of the cache.
@@ -333,10 +341,9 @@ module host_domain
     .IdWidthSlaves      ( ariane_soc::IdWidthSlave  ),
     .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
     .DataWidth          ( AXI_DATA_WIDTH            ),
-    // Size of burst in cachelines (0) or bytes (1)?
-    .SizeInBytes        ( 0                         ),
-    // Set minimum bits that must be used for response latency.
-    .MinLatencyBits     ( 16                        ),
+    
+    .EVENT_INFO_BITS    ( EVENT_INFO_BITS_LLC_IN    ),
+
     .CAM_DEPTH          ( 17                        ),
     .FIFO_DEPTH         (  8                        )
   ) spu_cpu_llc (
@@ -357,10 +364,9 @@ module host_domain
     .IdWidthSlaves      ( ariane_soc::IdWidthSlave+1),
     .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
     .DataWidth          ( AXI_DATA_WIDTH            ),
-    // Size of burst in cachelines (0) or bytes (1)?
-    .SizeInBytes        ( 1                         ),
-    // Set minimum bits that must be used for response latency.
-    .MinLatencyBits     ( 16                        ),
+    
+    .EVENT_INFO_BITS    ( EVENT_INFO_BITS_LLC_IN    ),
+
     .CAM_DEPTH          ( 17                        ),
     .FIFO_DEPTH         (  8                        )
   ) spu_llc_mem (
@@ -373,7 +379,6 @@ module host_domain
 
   pmu_top #(
     .NUM_COUNTER      ( PMU_NUM_COUNTER               ),
-    .NUM_EVU          ( PNU_COUNTER_WIDTH             ),
     .AxiLiteAddrWidth ( AXI_LITE_AW                   ),
     .AxiLiteDataWidth ( AXI_LITE_DW                   ),
     .req_t            ( ariane_axi_soc::req_t         ),
