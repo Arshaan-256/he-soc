@@ -50,7 +50,7 @@
 #define PERIOD_ADDR         (PMU_B_BASE_ADDR + TIMER_WIDTH)
 #define STATUS_ADDR         (PMU_B_BASE_ADDR + 2*TIMER_WIDTH)
 // Two 64-bit (8B) timer and one 32-bit status registers in the PMU bundle.
-#define PMU_BUNDLE_SIZE 2*TIMER_WIDTH + STATUS_WIDTH
+#define PMU_BUNDLE_SIZE     2*TIMER_WIDTH + STATUS_WIDTH
 
 // Counter Bundle Base Addresses
 #define COUNTER_B_BASE_ADDR     (PMU_B_BASE_ADDR + PMU_BUNDLE_SIZE)
@@ -59,7 +59,7 @@
 #define EVENT_INFO_BASE_ADDR    (COUNTER_B_BASE_ADDR + 2*COUNTER_WIDTH)
 #define INIT_BUDGET_BASE_ADDR   (COUNTER_B_BASE_ADDR + 3*COUNTER_WIDTH)
 // Four 32-bit (4B) registers in one counter bundle.
-#define COUNTER_BUNDLE_SIZE 16
+#define COUNTER_BUNDLE_SIZE     16
 
 // // // PMU Core Addresses
 #define ISPM_BASE_ADDR      0x10405000

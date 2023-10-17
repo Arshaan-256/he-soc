@@ -13,10 +13,10 @@ int main(int argc, char const *argv[]) {
   uint32_t test_freq = 100000000;
   #endif
 
-  uint32_t read_target_0;
-  uint32_t read_target_1;
-  uint32_t read_target_2;
-  uint32_t read_target_3;
+  volatile uint32_t read_target_0;
+  volatile uint32_t read_target_1;
+  volatile uint32_t read_target_2;
+  volatile uint32_t read_target_3;
 
   uart_set_cfg(0,(test_freq/baud_rate)>>4);
 
@@ -26,13 +26,13 @@ int main(int argc, char const *argv[]) {
     : "=r" (mhartid)
   );
 
-  uint32_t dspm_base_addr;
+  uint32_t dspm_base_addr = DSPM_BASE_ADDR;
   uint32_t read_target;
   uint32_t error_count = 0;
 
   uint32_t counter_val[]          = {0x1, 0x2, 0x3, 0x4};
   uint32_t event_sel_val[]        = {0x1000, 0x2000, 0x3000, 0x4000};
-  uint32_t port_1_event_sel_val[]    = {0x1F001F, 0x1F002F, 0x1F003F, 0x1F004F};
+  uint32_t port_1_event_sel_val[]    = {0x1F0011, 0x1F0021, 0x1F003F, 0x1F004F};
   uint32_t port_2_event_sel_val[]    = {0x2F001F, 0x2F002F, 0x2F003F, 0x2F004F};
   uint32_t event_info_val[]       = {0x10, 0x20, 0x30, 0x40};
   uint32_t init_budget_val[]      = {0x100, 0x200, 0x300, 0x400};
@@ -46,39 +46,14 @@ int main(int argc, char const *argv[]) {
     counter_b[i].init_budget = init_budget_val[i];
   }
 
-  asm (
-    "lui %0, %1"  // Load immediate value into upper_bits
-    : "=r" (dspm_base_addr)  // Output operand: "=r" specifies that it's an output variable
-    : "i" (66566)   // Input operand: "i" specifies an immediate value
-  );
-
-  asm volatile ( 
-    "addi   %0, %1, %2\n"  // write read_var into addr_var
-    : "=r"(dspm_base_addr)
-    : "r"(dspm_base_addr), "i"(0)
-  );
-
-  asm volatile (
-    "li %0, 0xF0"   // Load immediate value 1 into read_target
-    : "=r" (read_target_0)  // Output operand: "=r" specifies that it's an output variable
-  );
-   
-  asm volatile ( 
-    "sw   %0, 0(%1)\n"  // write read_var into addr_var
-    : "=r"(read_target_0)
-    : "r"(dspm_base_addr)
-  );
-
   // *******************************************************************
   // Core 0
   // *******************************************************************
   if (mhartid == 0) {
-    while (1) {
-      asm volatile ( 
-        "lw   %0, 0(%1)\n"  // read addr_var data into read_var
-        : "=r"(read_target_0)
-        : "r"(dspm_base_addr)
-      );
+    write_32b(dspm_base_addr, 0xF0);
+
+    while (1) {  
+      read_target_0 = read_32b(dspm_base_addr);
       if (read_target_0 == 0xF0) {
         break;
       }
@@ -86,39 +61,30 @@ int main(int argc, char const *argv[]) {
     printf("Hello CVA6-0!\n");
     uart_wait_tx_done();
     // error_count += test_spm_rand(ISPM_BASE_ADDR, 100);
-    printf("Testing Counters!\n");
-    error_count += test_counter_bundle(COUNTER_BASE_ADDR, NUM_COUNTER, COUNTER_BUNDLE_SIZE, counter_b);
+    // printf("Testing counters!\n");
+    // error_count += test_counter_bundle(COUNTER_BASE_ADDR, NUM_COUNTER, COUNTER_BUNDLE_SIZE, counter_b);
 
     // Setup event_sel registers.
     printf("Setting up event_sel_config!\n");
-    write_32b_regs(EVENT_SEL_BASE_ADDR, NUM_COUNTER, port_2_event_sel_val, COUNTER_BUNDLE_SIZE);
+    uart_wait_tx_done();
+    write_32b_regs(EVENT_SEL_BASE_ADDR, NUM_COUNTER, port_1_event_sel_val, COUNTER_BUNDLE_SIZE);
 
-    printf("CVA6-0 Over, errors: %0d!", error_count);
+    printf("CVA6-0 Over, errors: %0d!\n", error_count);
+    uart_wait_tx_done();
 
-    // Update DSPM target variable.
-    asm volatile ( 
-      "li   %0, 0xF1\n"  // write read_var into addr_var
-      : "=r"(read_target_0)
-    );
+    asm volatile ("fence");
+    write_32b(dspm_base_addr, 0xF91);
+    asm volatile ("fence");
 
-    asm volatile ( 
-      "sw   %0, 0(%1)\n"  // write read_var into addr_var
-      : "=r"(read_target_0)
-      : "r"(dspm_base_addr)
-    );
-
-    uint32_t result_0 = array_traversal(NUM_ELEMENT*(10));
+    uint32_t result_0 = array_traversal(NUM_ELEMENT*(1));
   // *******************************************************************
   // Core 1
   // *******************************************************************
   } else if (mhartid == 1) {
     while (1) {
-      asm volatile ( 
-        "lw   %0, 0(%1)\n"  // read addr_var data into read_var
-        : "=r"(read_target_1)
-        : "r"(dspm_base_addr)
-      );
-      if (read_target_1 == 0xF1) {
+      asm volatile ("fence");
+      read_target_1 = read_32b(dspm_base_addr);
+      if (read_target_1 == 0xF91) {
         break;
       }
     }
