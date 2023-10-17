@@ -150,25 +150,23 @@ module host_domain
   input  pad_to_gpio_t        pad_to_gpio
 
 );
+  ariane_axi_soc::req_slv_t  axi_cpu_req;
+  ariane_axi_soc::resp_slv_t axi_cpu_res;
 
-   
-   ariane_axi_soc::req_slv_t  axi_cpu_req;
-   ariane_axi_soc::resp_slv_t axi_cpu_res;
+  ariane_axi_soc::req_slv_mem_t  axi_mem_req;
+  ariane_axi_soc::resp_slv_mem_t axi_mem_res;
+  
+  ariane_axi_soc::req_lite_t  axi_llc_cfg_req;
+  ariane_axi_soc::resp_lite_t axi_llc_cfg_res;
 
-   ariane_axi_soc::req_slv_mem_t  axi_mem_req;
-   ariane_axi_soc::resp_slv_mem_t axi_mem_res;
-   
-   ariane_axi_soc::req_lite_t  axi_llc_cfg_req;
-   ariane_axi_soc::resp_lite_t axi_llc_cfg_res;
+`ifdef PMU_BLOCK
+  ariane_axi_soc::req_lite_t  axi_pmu_cfg_req;
+  ariane_axi_soc::resp_lite_t axi_pmu_cfg_res;
 
-  `ifdef PMU_BLOCK
-    ariane_axi_soc::req_lite_t  axi_pmu_cfg_req;
-    ariane_axi_soc::resp_lite_t axi_pmu_cfg_res;
-
-    localparam int unsigned PMU_NUM_COUNTER        = 4;
-    localparam int unsigned EVENT_INFO_BITS_LLC_IN = 16;
-    logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
-  `endif 
+  localparam int unsigned PMU_NUM_COUNTER        = 4;
+  localparam int unsigned EVENT_INFO_BITS_LLC_IN = 16;
+  logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
+`endif 
    
   // rule definitions
   typedef struct packed {
@@ -285,10 +283,10 @@ module host_domain
 
 `ifdef PMU_BLOCK
   AXI_BUS #(
-      .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
-      .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
-      .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
-      .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
   ) hyper_axi_spu_o_bus ();
 
   PMU_INTF #(
@@ -526,9 +524,9 @@ module host_domain
 `endif   
      
   cva6_subsystem # (
-    `ifdef PMU_BLOCK
-      .PMU_NUM_COUNTER ( PMU_NUM_COUNTER  ),
-    `endif    
+  `ifdef PMU_BLOCK
+    .PMU_NUM_COUNTER ( PMU_NUM_COUNTER  ),
+  `endif    
     .NUM_WORDS         ( NUM_WORDS        ),
     .InclSimDTM        ( 1'b1             ),
     .StallRandomOutput ( 1'b1             ),
