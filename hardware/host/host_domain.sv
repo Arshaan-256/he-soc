@@ -493,6 +493,8 @@ module host_domain
     .AxiUserWidth     ( AXI_USER_WIDTH                 ),
     .AxiLiteAddrWidth ( AXI_LITE_AW                    ),
     .AxiLiteDataWidth ( AXI_LITE_DW                    ),
+    // 7 Masters but this parameter must be a power of 2.
+    .NumCfgRegcp      ( 8                              ), 
     .slv_req_t        ( ariane_axi_soc::req_slv_t      ),
     .slv_resp_t       ( ariane_axi_soc::resp_slv_t     ),
     .mst_req_t        ( ariane_axi_soc::req_slv_mem_t  ),
