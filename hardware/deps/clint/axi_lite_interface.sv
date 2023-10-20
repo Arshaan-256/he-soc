@@ -16,13 +16,15 @@
 module axi_lite_interface #(
     parameter int unsigned AXI_ADDR_WIDTH = 64,
     parameter int unsigned AXI_DATA_WIDTH = 64,
-    parameter int unsigned AXI_ID_WIDTH   = 10
+    parameter int unsigned AXI_ID_WIDTH   = 10,
+    parameter type  lite_req_t            = logic,
+    parameter type  lite_resp_t           = logic    
 ) (
     input logic                       clk_i,    // Clock
     input logic                       rst_ni,  // Asynchronous reset active low
 
-    input  ariane_axi::req_slv_t      axi_req_i,
-    output ariane_axi::resp_slv_t     axi_resp_o,
+    input  lite_req_t                 axi_req_i,
+    output lite_resp_t                axi_resp_o,
 
     output logic [AXI_ADDR_WIDTH-1:0] address_o,
     output logic                      en_o,        // transaction is valid
@@ -37,6 +39,9 @@ module axi_lite_interface #(
     logic [AXI_ID_WIDTH-1:0]   trans_id_n, trans_id_q;
     // address register
     logic [AXI_ADDR_WIDTH-1:0] address_n,  address_q;
+
+    assign axi_resp_o.b.user = '0;
+    assign axi_resp_o.r.user = '0;
 
     // pass through read data on the read data channel
     assign axi_resp_o.r.data = data_i;
