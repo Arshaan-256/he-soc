@@ -181,7 +181,7 @@ module host_domain
 
   localparam LLC_SET_ASSOC  = 32'd8;
   localparam LLC_NUM_LINES  = 32'd256;
-  localparam LLC_NUM_BLOCKS   = 32'd8;
+  localparam LLC_NUM_BLOCKS = 32'd8;
   
   // When changing these parameters, change the L2 size accordingly in ariane_soc_pkg
   localparam NB_L2_BANKS = 8;
