@@ -160,17 +160,18 @@ module host_domain
   ariane_axi_soc::req_lite_t  axi_llc_cfg_req;
   ariane_axi_soc::resp_lite_t axi_llc_cfg_res;
 
-  `ifdef PMU_BLOCK
-    ariane_axi_soc::req_t  pmu_debug_req;
-    ariane_axi_soc::resp_t pmu_debug_res;
+`ifdef PMU_BLOCK
+  ariane_axi_soc::req_lite_t  pmu_debug_req;
+  ariane_axi_soc::resp_lite_t pmu_debug_res;
 
-    ariane_axi_soc::req_lite_t  axi_lite_pmu_cfg_req;
-    ariane_axi_soc::resp_lite_t axi_lite_pmu_cfg_res;
+  ariane_axi_soc::req_lite_t  axi_lite_pmu_cfg_req;
+  ariane_axi_soc::resp_lite_t axi_lite_pmu_cfg_res;
 
-    localparam int unsigned PMU_NUM_COUNTER    = 4;
-    localparam int unsigned PNU_COUNTER_WIDTH  = 64;
-    logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
-  `endif 
+  localparam int unsigned PMU_NUM_COUNTER    = 4;
+  logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
+
+  localparam EVENT_INFO_BITS_LLC_IN = 16;
+`endif 
   
   // rule definitions
   typedef struct packed {
@@ -181,7 +182,7 @@ module host_domain
 
   localparam LLC_SET_ASSOC  = 32'd8;
   localparam LLC_NUM_LINES  = 32'd256;
-  localparam LLC_NUM_BLOCKS = 32'd8;
+  localparam LLC_NUM_BLOCKS   = 32'd8;
   
   // When changing these parameters, change the L2 size accordingly in ariane_soc_pkg
   localparam NB_L2_BANKS = 8;
@@ -276,6 +277,13 @@ module host_domain
       .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
       .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
   ) hyper_axi_spu_o_bus ();
+  
+  AXI_BUS #(
+      .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
+      .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
+      .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
+      .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
+  ) axi_lite_to_axi_bus ();
 
   AXI_BUS #(
       .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
@@ -284,34 +292,19 @@ module host_domain
       .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
   ) pmu_debug_bus ();
 
-  SPU_INTF #(
+  // Maximum beat size is 64-bit, 8B.
+  // AXI_BURST_SIZE = (AXI_LEN+1) << AXI_SIZE;
+  // In AXI4, the largest burst size can be is (2^8-1 + 1) * 8.
+  // Max number of cachelines affected = Max_Burst_Size / Cacheline_Size + 1 (if unaligned transfer).
+  //                                   = (2^8 * 8) / (8 * 8) + 1
+  //                                   = 2^5 + 1.
+  
+  // For size in Bytes, 11-bits are enough (8 for AXI_LENGTH and 3 for AXI_SIZE).
+  // For size in cachelines, 6-bits are enough.
+  PMU_INTF #(
     // Static configuration parameters of the cache.
-    .SetAssociativity   ( LLC_SET_ASSOC             ),
-    .NumLines           ( LLC_NUM_LINES             ),
-    .NumBlocks          ( LLC_NUM_BLOCKS            ),
-    // AXI4 Specifications
-    .IdWidthMasters     ( ariane_soc::IdWidth       ),
-    .IdWidthSlaves      ( ariane_soc::IdWidthSlave  ),
-    .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
-    .DataWidth          ( AXI_DATA_WIDTH            ),
-    // Size of burst in cachelines (0) or bytes (1)?
-    .SizeInBytes        ( 0                         ),
-    // Set minimum bits that must be used for response latency.
-    .MinLatencyBits     ( 16                        )
+    .EVENT_INFO_BITS  ( EVENT_INFO_BITS_LLC_IN )
   ) spu_out ();
-
-  localparam spu_pkg::cache_cfg_t CacheCfg = spu_pkg::cache_cfg_t'{
-    SetAssociativity: 32'd8,
-    NumLines: 32'd256,
-    NumBlocks: 32'd8
-  };
-
-  localparam spu_pkg::axi_cfg_t AXICfg = spu_pkg::axi_cfg_t'{
-    AddrWidth: AXI_ADDRESS_WIDTH,
-    DataWidth: AXI_DATA_WIDTH,
-    IdWidth: ariane_soc::IdWidthSlave,
-    UserWidth: AXI_USER_WIDTH
-  };
 
   spu_top #(
     // Static configuration parameters of the cache.
@@ -323,10 +316,9 @@ module host_domain
     .IdWidthSlaves      ( ariane_soc::IdWidthSlave  ),
     .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
     .DataWidth          ( AXI_DATA_WIDTH            ),
-    // Size of burst in cachelines (0) or bytes (1)?
-    .SizeInBytes        ( 0                         ),
-    // Set minimum bits that must be used for response latency.
-    .MinLatencyBits     ( 16                        ),
+    
+    .EVENT_INFO_BITS    ( EVENT_INFO_BITS_LLC_IN    ),
+
     .CAM_DEPTH          ( 17                        ),
     .FIFO_DEPTH         (  8                        )
   ) spu_cpu_llc (
@@ -339,29 +331,24 @@ module host_domain
 
   pmu_top #(
     .NUM_COUNTER      ( PMU_NUM_COUNTER               ),
-    .NUM_EVU          ( PNU_COUNTER_WIDTH             ),
     .AxiLiteAddrWidth ( AXI_LITE_AW                   ),
     .AxiLiteDataWidth ( AXI_LITE_DW                   ),
-    .req_t            ( ariane_axi_soc::req_t         ),
-    .resp_t           ( ariane_axi_soc::resp_t        ),
     .lite_req_t       ( ariane_axi_soc::req_lite_t    ),
     .lite_resp_t      ( ariane_axi_soc::resp_lite_t   )
   ) i_pmu (
-    .clk_i               ( s_soc_clk              ),
-    .rst_ni              ( s_synch_soc_rst        ),
-    .port_1_i            ( spu_out                ),
-    .conf_req_i          ( axi_lite_pmu_cfg_req   ),
-    .conf_resp_o         ( axi_lite_pmu_cfg_res   ),
-    .debug_req_o         ( pmu_debug_req          ),
-    .debug_resp_i        ( pmu_debug_res          ),
-    .intr_o              ( pmu_intr_o             )
+    .clk_i            ( s_soc_clk                     ),
+    .rst_ni           ( s_synch_soc_rst               ),
+    .port_1_i         ( spu_out                       ),
+    .conf_req_i       ( axi_lite_pmu_cfg_req          ),
+    .conf_resp_o      ( axi_lite_pmu_cfg_res          ),
+    .debug_req_o      ( pmu_debug_req                 ),
+    .debug_resp_i     ( pmu_debug_res                 ),
+    .intr_o           ( pmu_intr_o                    )
   );
 
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH           ),
-    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH              ),
-    .AXI_ID_WIDTH   ( ariane_soc::IdWidth         ),
-    .AXI_USER_WIDTH ( AXI_USER_WIDTH              )
+  AXI_LITE #(
+    .AXI_ADDR_WIDTH (AXI_LITE_AW),
+    .AXI_DATA_WIDTH (AXI_LITE_DW)
   ) pmu_debug_axi_bus();
 
   AXI_LITE #(
@@ -369,8 +356,8 @@ module host_domain
   .AXI_DATA_WIDTH (AXI_LITE_DW)
   ) pmu_cfg_lite_bus();
 
-  `AXI_ASSIGN_FROM_REQ( pmu_debug_axi_bus , pmu_debug_req )
-  `AXI_ASSIGN_TO_RESP( pmu_debug_res , pmu_debug_axi_bus )
+  `AXI_LITE_ASSIGN_FROM_REQ( pmu_debug_axi_bus , pmu_debug_req )
+  `AXI_LITE_ASSIGN_TO_RESP( pmu_debug_res , pmu_debug_axi_bus )
 
   `AXI_LITE_ASSIGN_TO_REQ( axi_lite_pmu_cfg_req, pmu_cfg_lite_bus )
   `AXI_LITE_ASSIGN_FROM_RESP( pmu_cfg_lite_bus, axi_lite_pmu_cfg_res )
@@ -396,7 +383,6 @@ module host_domain
     assign dummyaxibus.aw_valid  = 1'b0;
     assign dummyaxibus.ar_valid  = 1'b0;
     assign dummyaxibus.w_valid   = 1'b0;
-
 
     `AXI_ASSIGN(axi_ddr_master,mem_axi_bus)
   `endif
@@ -489,9 +475,9 @@ module host_domain
     .axi_llc_events_o    ( llc_events                                      )
   );
 
-  assign s_llc_read_hit_cache = llc_events.hit_read_cache.active;
-  assign s_llc_read_miss_cache = llc_events.miss_read_cache.active;
-  assign s_llc_write_hit_cache = llc_events.hit_write_cache.active;
+  assign s_llc_read_hit_cache   = llc_events.hit_read_cache.active;
+  assign s_llc_read_miss_cache  = llc_events.miss_read_cache.active;
+  assign s_llc_write_hit_cache  = llc_events.hit_write_cache.active;
   assign s_llc_write_miss_cache = llc_events.miss_write_cache.active;
   
 `endif   
@@ -519,7 +505,7 @@ module host_domain
       .dmi_resp_valid,
       .dmi_resp_ready,
       .dmi_resp_bits_resp,
-      .dmi_resp_bits_data,                      
+      .dmi_resp_bits_data,
       .jtag_TCK,
       .jtag_TMS,
       .jtag_TDI,
@@ -546,6 +532,7 @@ module host_domain
 
       `ifdef PMU_BLOCK
       .pmu_intr_i           ( pmu_intr_o           ),
+      .axi_lite_slave       ( axi_lite_to_axi_bus  ),
       `endif
 
       .cva6_uart_rx_i       ( cva6_uart_rx_i       ),
@@ -570,9 +557,9 @@ module host_domain
 
   l2_subsystem #(
     .NB_L2_BANKS        ( NB_L2_BANKS              ),
-    .L2_BANK_SIZE       ( L2_BANK_SIZE             ), 
+    .L2_BANK_SIZE       ( L2_BANK_SIZE             ),
     .L2_BANK_ADDR_WIDTH ( L2_BANK_ADDR_WIDTH       ),
-    .L2_DATA_WIDTH      ( L2_DATA_WIDTH            )                   
+    .L2_DATA_WIDTH      ( L2_DATA_WIDTH            )
     ) i_l2_subsystem   (
     .clk_i                     ( s_soc_clk                 ),
     .rst_ni                    ( s_synch_soc_rst           ),
@@ -602,7 +589,7 @@ module host_domain
     .clk_i                  ( s_soc_clk                      ),
     .rtc_i                  ( rtc_i                          ),
     .rst_ni                 ( rst_ni                         ),
-    .bypass_clk_i           ( bypass_clk_i                   ),  
+    .bypass_clk_i           ( bypass_clk_i                   ),
     .rst_dm_i               ( s_dm_rst                       ),
     .apb_uart_rx_i          ( apb_uart_rx_i                  ),
     .apb_uart_tx_o          ( apb_uart_tx_o                  ),
@@ -621,9 +608,9 @@ module host_domain
     .llc_write_miss_cache_i ( s_llc_write_miss_cache         ),
                       
     `ifdef XILINX_DDR
-    .hyper_axi_bus_slave    ( dummyaxibus                    ),                 
+    .hyper_axi_bus_slave    ( dummyaxibus                    ),
     `else
-    .hyper_axi_bus_slave    ( mem_axi_bus                    ),                 
+    .hyper_axi_bus_slave    ( mem_axi_bus                    ),
     `endif                        
     .axi_apb_slave          ( apb_axi_bus                    ),
     .udma_tcdm_channels     ( udma_2_tcdm_channels           ),
@@ -674,7 +661,9 @@ module host_domain
       .c2h_tlb_cfg_master     ( c2h_tlb_cfg_lite_master ),
       .llc_cfg_master         ( llc_cfg_bus             ),
 `ifdef PMU_BLOCK
+      .axi_master             ( axi_lite_to_axi_bus     ),
       .pmu_cfg_master         ( pmu_cfg_lite_bus        ),
+      .pmu_debug_slave        ( pmu_debug_axi_bus       ),
 `endif      
       .h2c_irq_o              ( h2c_irq_o               ),
       .c2h_irq_o              ( s_c2h_irq               )

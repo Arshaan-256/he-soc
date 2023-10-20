@@ -37,7 +37,10 @@ module axi_lite_subsystem
     AXI_LITE.Master  llc_cfg_master,
 
 `ifdef PMU_BLOCK
+    AXI_BUS.Master   axi_master,
+
     AXI_LITE.Master  pmu_cfg_master,
+    AXI_LITE.Slave   pmu_debug_slave,
 `endif
 
     output logic     h2c_irq_o,
@@ -47,12 +50,12 @@ module axi_lite_subsystem
   logic             s_c2h_irq;
    
   ariane_axi_soc::req_lite_t llc_cfg_req,     
-                            h2c_tlb_cfg_req, 
-                            c2h_tlb_cfg_req, 
-                            host_lite_req,   
-                            cluster_lite_req,                              
-                            h2cmailbox_lite_req,
-                            c2hmailbox_lite_req;                           
+                             h2c_tlb_cfg_req, 
+                             c2h_tlb_cfg_req, 
+                             host_lite_req,   
+                             cluster_lite_req,                              
+                             h2cmailbox_lite_req,
+                             c2hmailbox_lite_req;                           
     
   ariane_axi_soc::resp_lite_t llc_cfg_resp,     
                               h2c_tlb_cfg_resp, 
@@ -62,9 +65,15 @@ module axi_lite_subsystem
                               h2cmailbox_lite_resp,
                               c2hmailbox_lite_resp;
 
-  ariane_axi_soc::req_lite_t  pmu_cfg_req;  
-  ariane_axi_soc::resp_lite_t pmu_cfg_resp;
-   
+  ariane_axi_soc::req_lite_t  pmu_cfg_req,        // Connects to PMU-Slave device.
+                              axi_bus_lite_req,   // Connects to AXI4-Slave device.
+                              pmu_debug_req;      // Comes from PMU-Master device.
+  ariane_axi_soc::resp_lite_t pmu_cfg_resp,
+                              axi_bus_lite_resp,
+                              pmu_debug_resp;
+
+  ariane_axi_soc::req_t   axi_bus_req;                                
+  ariane_axi_soc::resp_t  axi_bus_resp;
   AXI_LITE #(
     .AXI_ADDR_WIDTH (AXI_LITE_ADDR_WIDTH),
     .AXI_DATA_WIDTH (AXI_LITE_DATA_WIDTH)
@@ -164,13 +173,21 @@ module axi_lite_subsystem
 `ifdef PMU_BLOCK
   `AXI_LITE_ASSIGN_FROM_REQ ( pmu_cfg_master , pmu_cfg_req  )
   `AXI_LITE_ASSIGN_TO_RESP  ( pmu_cfg_resp , pmu_cfg_master )
+
+  `AXI_ASSIGN_FROM_REQ      ( axi_master , axi_bus_req  )
+  `AXI_ASSIGN_TO_RESP       ( axi_bus_resp , axi_master )
+
+  // Since PMU is already 32-B and has AXI4-Lite Xbar, we do not need
+  // to perform a AXI4 to AX4-Lite 
+  `AXI_LITE_ASSIGN_TO_REQ    ( pmu_debug_req, pmu_debug_slave   )
+  `AXI_LITE_ASSIGN_FROM_RESP ( pmu_debug_slave , pmu_debug_resp )
 `endif 
 
   typedef axi_pkg::xbar_rule_32_t tlb_cfg_xbar_rule_t;
 
   localparam axi_pkg::xbar_cfg_t FromHostTlbCfgXbarCfg = '{
-    NoSlvPorts:  2,
-    NoMstPorts:  5,
+    NoSlvPorts:  3,
+    NoMstPorts:  6,
     MaxMstTrans: 2,
     MaxSlvTrans: 4,           // Maximum number of outstanding transactions per write or read
     FallThrough: 0,
@@ -181,13 +198,14 @@ module axi_lite_subsystem
     UniqueIds   : 0,
     AxiAddrWidth: AXI_LITE_ADDR_WIDTH,
     AxiDataWidth: AXI_LITE_DATA_WIDTH,
-    NoAddrRules: 5
+    NoAddrRules: 6
   };
 
 `ifdef PMU_BLOCK
   localparam tlb_cfg_xbar_rule_t [FromHostTlbCfgXbarCfg.NoAddrRules-1:0]
       FromHostTlbCfgXbarAddrMap = '{
-    '{idx: 32'd4, start_addr: 32'h1040_4000, end_addr: 32'h1060_4000},
+    '{idx: 32'd5, start_addr: 32'h0000_0000, end_addr: 32'h0000_1000},  // Debug Module
+    '{idx: 32'd4, start_addr: 32'h1040_4000, end_addr: 32'h1060_4000},  // PMU Module
     '{idx: 32'd3, start_addr: 32'h1040_3000, end_addr: 32'h1040_4000},
     '{idx: 32'd2, start_addr: 32'h1040_2000, end_addr: 32'h1040_3000},
     '{idx: 32'd1, start_addr: 32'h1040_1000, end_addr: 32'h1040_2000},
@@ -208,15 +226,33 @@ module axi_lite_subsystem
      .clk_i                 ( clk_i                                               ),
      .rst_ni                ( rst_ni                                              ),
      .test_i                ( 1'b0                                                ),
-     .slv_ports_req_i       ( {cluster_lite_req , host_lite_req }                 ), 
-     .slv_ports_resp_o      ( {cluster_lite_resp, host_lite_resp}                 ), 
-     .mst_ports_req_o       ( {pmu_cfg_req, c2hmailbox_lite_req,  h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}   ),
-     .mst_ports_resp_i      ( {pmu_cfg_resp, c2hmailbox_lite_resp, h2cmailbox_lite_resp, llc_cfg_resp, c2h_tlb_cfg_resp} ),
+     .slv_ports_req_i       ( {pmu_debug_req , cluster_lite_req , host_lite_req}     ), 
+     .slv_ports_resp_o      ( {pmu_debug_resp , cluster_lite_resp, host_lite_resp}   ), 
+     // To Do: Clean this.
+     .mst_ports_req_o       ( {axi_bus_lite_req, pmu_cfg_req, c2hmailbox_lite_req,  h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}   ),
+     .mst_ports_resp_i      ( {axi_bus_lite_resp, pmu_cfg_resp, c2hmailbox_lite_resp, h2cmailbox_lite_resp, llc_cfg_resp, c2h_tlb_cfg_resp} ),
      .addr_map_i            ( FromHostTlbCfgXbarAddrMap                           ),
      .en_default_mst_port_i ( {1'b0, 1'b0}                                        ),
      .default_mst_port_i    ( '0                                                  )
-   );   
+   );  
+
+   axi_lite_to_axi #(
+      .AxiDataWidth ( 32'd64                       ),
+      .req_lite_t   ( ariane_axi_soc::req_lite_t  ),
+      .resp_lite_t  ( ariane_axi_soc::resp_lite_t ),
+      .axi_req_t    ( ariane_axi_soc::req_t       ),
+      .axi_resp_t   ( ariane_axi_soc::resp_t      )
+   ) i_axi_lite_to_axi (
+      .slv_req_lite_i   ( axi_bus_lite_req        ),
+      .slv_resp_lite_o  ( axi_bus_lite_resp       ),
+      .slv_aw_cache_i   ( 4'd0                    ),
+      .slv_ar_cache_i   ( 4'd0                    ),
+      // Master AXI port
+      .mst_req_o        ( axi_bus_req             ),
+      .mst_resp_i       ( axi_bus_resp            )
+   );
 `else
+  // Without PMU_BLOCK
   localparam tlb_cfg_xbar_rule_t [FromHostTlbCfgXbarCfg.NoAddrRules-1:0]
       FromHostTlbCfgXbarAddrMap = '{
     '{idx: 32'd3, start_addr: 32'h1040_3000, end_addr: 32'h1040_4000},

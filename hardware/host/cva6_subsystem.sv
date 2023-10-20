@@ -70,7 +70,9 @@ module cva6_subsystem
 
   `ifdef PMU_BLOCK
   // PMU
+  AXI_BUS.Slave            axi_lite_slave,
   input  logic [PMU_NUM_COUNTER-1:0]  pmu_intr_i,
+  // AXI_BUS.Slave           pmu_debug_axi_slave,
   `endif
 
   //SERIAL LINK
@@ -87,9 +89,12 @@ module cva6_subsystem
   AXI_BUS.Master          apb_axi_master,
   AXI_BUS.Master          hyper_axi_master,
   AXI_BUS.Master          cluster_axi_master,
+
   AXI_BUS.Slave           cluster_axi_slave
+  
 );
-     // disable test-enable
+
+  // disable test-enable
   logic        test_en;
   logic        ndmreset;
   logic        ndmreset_n;
@@ -176,8 +181,23 @@ module cva6_subsystem
     .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
   ) cluster_axi_master_cut();
 
-   
   assign ndmreset_n = sync_rst_ni;
+
+  // ------------------------------
+  // AXI4-Lite Master to AXI4 Slave
+  // ------------------------------
+
+  ariane_axi_soc::req_t   dummy_req;                                
+  ariane_axi_soc::resp_t  dummy_resp;
+  // assign dummy_req  = '0;
+  // assign dummy_resp = '0;
+
+  `ifdef PMU_BLOCK
+    `AXI_ASSIGN ( slave[4], axi_lite_slave )
+  `else
+    `AXI_ASSIGN_FROM_REQ ( slave[4], dummy_req  )
+    `AXI_ASSIGN_TO_RESP  ( dummy_resp, slave[4] )
+  `endif
    
   // ---------------
   // Debug
@@ -351,7 +371,6 @@ module cva6_subsystem
     .axi_resp_i            ( dm_axi_m_resp             )
   );
 
-
   // ---------------
   // ROM
   // ---------------
@@ -493,7 +512,7 @@ module cva6_subsystem
   // ---------------
   // AXI CLUSTER Master
   // ---------------
-  `AXI_ASSIGN(slave[2],cluster_axi_slave)
+  `AXI_ASSIGN(slave[2], cluster_axi_slave)
    
   // ---------------
   // AXI Xbar
@@ -631,6 +650,8 @@ module cva6_subsystem
     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
     .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
+    .lite_req_t     ( ariane_axi_soc::req_slv_t  ),
+    .lite_resp_t    ( ariane_axi_soc::resp_slv_t ), 
     .NR_CORES       ( 1                        )
   ) i_clint (
     .clk_i       ( clk_i          ),
