@@ -167,10 +167,9 @@ module host_domain
   ariane_axi_soc::req_lite_t  axi_lite_pmu_cfg_req;
   ariane_axi_soc::resp_lite_t axi_lite_pmu_cfg_res;
 
-  localparam int unsigned PMU_NUM_COUNTER    = 4;
+  localparam int unsigned PMU_NUM_COUNTER        = 4;
+  localparam int unsigned EVENT_INFO_BITS_LLC_IN = 16;
   logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
-
-  localparam EVENT_INFO_BITS_LLC_IN = 16;
 `endif 
   
   // rule definitions
@@ -268,7 +267,18 @@ module host_domain
     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave+1 ),
     `endif
     .AXI_USER_WIDTH ( AXI_USER_WIDTH             )
-  ) mem_axi_bus ();    
+  ) mem_axi_bus ();
+
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH          ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH             ),
+    `ifdef EXCLUDE_LLC
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave   ),
+    `else
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave+1 ),
+    `endif
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH             )
+  ) mem_axi_bus_spu_o_bus ();
 
 `ifdef PMU_BLOCK
   AXI_BUS #(
@@ -285,13 +295,6 @@ module host_domain
       .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
   ) axi_lite_to_axi_bus ();
 
-  AXI_BUS #(
-      .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
-      .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
-      .AXI_ID_WIDTH   ( ariane_soc::IdWidth      ),
-      .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
-  ) pmu_debug_bus ();
-
   // Maximum beat size is 64-bit, 8B.
   // AXI_BURST_SIZE = (AXI_LEN+1) << AXI_SIZE;
   // In AXI4, the largest burst size can be is (2^8-1 + 1) * 8.
@@ -302,9 +305,12 @@ module host_domain
   // For size in Bytes, 11-bits are enough (8 for AXI_LENGTH and 3 for AXI_SIZE).
   // For size in cachelines, 6-bits are enough.
   PMU_INTF #(
-    // Static configuration parameters of the cache.
-    .EVENT_INFO_BITS  ( EVENT_INFO_BITS_LLC_IN )
-  ) spu_out ();
+    .EVENT_INFO_BITS    ( 16                        )
+  ) spu_llc_in ();
+
+  PMU_INTF #(
+    .EVENT_INFO_BITS    ( 16                        )
+  ) spu_llc_out ();
 
   spu_top #(
     // Static configuration parameters of the cache.
@@ -326,7 +332,30 @@ module host_domain
     .rst_ni             ( s_synch_soc_rst           ),
     .spu_slv            ( hyper_axi_bus             ),
     .spu_mst            ( hyper_axi_spu_o_bus       ),
-    .e_out              ( spu_out                   )
+    .e_out              ( spu_llc_in                )
+  );
+
+  spu_top #(
+    // Static configuration parameters of the cache.
+    .SetAssociativity   ( LLC_SET_ASSOC             ),
+    .NumLines           ( LLC_NUM_LINES             ),
+    .NumBlocks          ( LLC_NUM_BLOCKS            ),
+    // AXI4 Specifications
+    .IdWidthMasters     ( ariane_soc::IdWidth       ),
+    .IdWidthSlaves      ( ariane_soc::IdWidthSlave+1),
+    .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
+    .DataWidth          ( AXI_DATA_WIDTH            ),
+    
+    .EVENT_INFO_BITS    ( EVENT_INFO_BITS_LLC_IN    ),
+
+    .CAM_DEPTH          ( 17                        ),
+    .FIFO_DEPTH         (  8                        )
+  ) spu_llc_mem (
+    .clk_i              ( s_soc_clk                 ),
+    .rst_ni             ( s_synch_soc_rst           ),
+    .spu_slv            ( mem_axi_bus_spu_o_bus     ),
+    .spu_mst            ( mem_axi_bus               ),
+    .e_out              ( spu_llc_out               )
   );
 
   pmu_top #(
@@ -338,7 +367,8 @@ module host_domain
   ) i_pmu (
     .clk_i            ( s_soc_clk                     ),
     .rst_ni           ( s_synch_soc_rst               ),
-    .port_1_i         ( spu_out                       ),
+    .port_1_i         ( spu_llc_in                    ),
+    .port_2_i         ( spu_llc_out                   ),    
     .conf_req_i       ( axi_lite_pmu_cfg_req          ),
     .conf_resp_o      ( axi_lite_pmu_cfg_res          ),
     .debug_req_o      ( pmu_debug_req                 ),
@@ -430,15 +460,18 @@ module host_domain
   `AXI_ASSIGN_TO_REQ( axi_cpu_req, hyper_axi_spu_o_bus )
   `AXI_ASSIGN_FROM_RESP( hyper_axi_spu_o_bus,axi_cpu_res )
 
+  `AXI_ASSIGN_FROM_REQ( mem_axi_bus_spu_o_bus, axi_mem_req )
+  `AXI_ASSIGN_TO_RESP( axi_mem_res, mem_axi_bus_spu_o_bus )
   // `AXI_ASSIGN_TO_REQ(axi_cpu_req,hyper_axi_spu_o_bus)
   // `AXI_ASSIGN_FROM_RESP(hyper_axi_spu_o_bus,axi_cpu_res)
 `else
   `AXI_ASSIGN_TO_REQ( axi_cpu_req, hyper_axi_bus )
   `AXI_ASSIGN_FROM_RESP( hyper_axi_bus, axi_cpu_res )
-`endif 
 
   `AXI_ASSIGN_FROM_REQ(mem_axi_bus,axi_mem_req)
   `AXI_ASSIGN_TO_RESP(axi_mem_res,mem_axi_bus)
+`endif 
+  
   `AXI_LITE_ASSIGN_TO_REQ(axi_llc_cfg_req,llc_cfg_bus)
   `AXI_LITE_ASSIGN_FROM_RESP(llc_cfg_bus,axi_llc_cfg_res)
 
