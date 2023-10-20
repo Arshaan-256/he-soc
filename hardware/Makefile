@@ -43,13 +43,13 @@ BENDER_SYNTH_DIR = gf22
 BENDER_BUILD_DIR:=.
 
 
-ifndef RISCV
-$(error RISCV not set - please point your RISCV variable to your RISCV installation)
-endif
+# ifndef RISCV
+# $(error RISCV not set - please point your RISCV variable to your RISCV installation)
+# endif
 
-ifndef QUESTASIM_HOME
-$(error QUESTASIM not set - please point to your QUESTA installation)
-endif
+# ifndef QUESTASIM_HOME
+# $(error QUESTASIM not set - please point to your QUESTA installation)
+# endif
 
 ifndef post_synth
     compile_script := compile.tcl
