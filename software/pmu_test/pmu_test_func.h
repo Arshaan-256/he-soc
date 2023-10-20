@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "pmu_defines.h"
 #include "riscv_encoder_instr.c"
 
 // *********************************************************************
@@ -10,8 +11,6 @@
 #define TEST_1
 
 // All Widths are in Bytes
-#define NUM_COUNTER 4
-
 #define INSTR_WIDTH 4
 #define DATA_WIDTH 4
 
@@ -19,7 +18,7 @@
 #define NUM_DATA 100
 
 // For the array traversal
-#define NUM_ELEMENT 1000
+#define NUM_ELEMENT 100
 
 // Counter Bundle
 typedef struct {
@@ -87,29 +86,29 @@ uint32_t test_spm_rand(uint64_t base_addr, uint32_t num_rw);
 // The `test_pmu_core_bubble_sort` function writes the RISC-V assembly program for bubble sort in the ISPM, populate the DSPM with a randomized array of 
 // size `len` and intialize the core.
 void bubble_sort (uint32_t *array, uint32_t len);
-uint32_t test_pmu_core_bubble_sort (uint32_t ISPM_BASE_ADDR, 
-                                    uint32_t ARR_BASE,
-                                    uint32_t STATUS_BASE_ADDR, 
+uint32_t test_pmu_core_bubble_sort (uint32_t program_start_addr, 
+                                    uint32_t arr_base,
+                                    uint32_t status_base_addr, 
                                     uint32_t len, 
                                     uint32_t DEBUG);
 
 // PMU core writes to counter bundles.
 // The `test_pmu_core_counter_b_writes` function writes multiples of 17 to all the registers in the all the counter bundles in the PMU.
-// The base address of the first counter bundle is provided through `COUNTER_B_BASE_ADDRESS`.
+// The base address of the first counter bundle is provided through `counter_b_base_addr`.
 // counter[0]      = 17*1
 // eventSelCfg[0]  = 17*2
 // eventInfoCfg[0] = 17*3
 // initBudgeReg[0] = 17*4
 // counter[1]      = 17*5
 // ...
-// When all bundles are written to, the PMU core writes a 1 at `TARGET_ADDR`.
+// When all bundles are written to, the PMU core writes a 1 at `target_addr`.
 // Until then the application core is stuck in a while loop reading this address.
-// Once `TARGET_ADDR` is updated to 1, the application core reads all the counter bundles 
+// Once `target_addr` is updated to 1, the application core reads all the counter bundles 
 // and verifies that the write operations indeed occurred.
-uint32_t test_pmu_core_counter_b_writes (uint32_t ISPM_BASE_ADDRESS, 
-                                         uint32_t COUNTER_B_BASE_ADDR,
-                                         uint32_t TARGET_ADDR,
-                                         uint32_t STATUS_BASE_ADDR,  
-                                         uint32_t COUNTER_BUNDLE_SIZE,
+uint32_t test_pmu_core_counter_b_writes (uint32_t program_start_addr, 
+                                         uint32_t counter_b_base_addr,
+                                         uint32_t target_addr,
+                                         uint32_t status_base_addr,  
+                                         uint32_t counter_b_size,
                                          uint32_t num_counter,
                                          uint32_t DEBUG);
