@@ -17,14 +17,29 @@ package ariane_soc;
   localparam int unsigned NumSources = 255;
   localparam int unsigned MaxPriority = 7;
 
-  localparam NrSlaves = 4+3; // actually masters, but slaves on the crossbar 
-  // Slave 0: CVA6-0
-  // Slave 1: Debug Module
-  // Slave 2: Cluster
-  // Slave 3: DDR / Serial Link (?) 
-  // Slave 4: CVA6-1
-  // Slave 5: CVA6-2
-  // Slave 6: CVA6-3
+  // localparam NrSlaves = 4+1+3; // actually masters, but slaves on the crossbar 
+  // // Slave 0: CVA6-0
+  // // Slave 1: Debug Module
+  // // Slave 2: Cluster
+  // // Slave 3: DDR / Serial Link (?) 
+  // // Slave 4: CVA6-1
+  // // Slave 5: CVA6-2
+  // // Slave 6: CVA6-3
+  // // Slave 7: AXI4-Lite
+
+  typedef enum int unsigned {
+    Hart_3         = 7,
+    Hart_2         = 6,
+    Hart_1         = 5,
+    Hart_0         = 4,
+    AXI4_Lite      = 3,
+    Cluster_Master = 2,
+    Serial_Link    = 1,
+    DEBUG          = 0
+  } axi_masters_t;
+
+  // actually masters, but slaves on the crossbar 
+  localparam NrSlaves = 8;
 
   typedef struct packed {
       logic [31:0] idx;
