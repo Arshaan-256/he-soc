@@ -69,10 +69,9 @@ module cva6_subsystem
   output logic             jtag_TDO_driven,
 
   `ifdef PMU_BLOCK
-  // PMU
+  // From AXI4-Lite Bar
   AXI_BUS.Slave            axi_lite_slave,
   input  logic [PMU_NUM_COUNTER-1:0]  pmu_intr_i,
-  // AXI_BUS.Slave           pmu_debug_axi_slave,
   `endif
 
   //SERIAL LINK

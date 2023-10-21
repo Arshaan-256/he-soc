@@ -21,26 +21,28 @@ module axi_lite_subsystem
   import ariane_soc::IdWidthSlave;
   import axi_pkg::*;
 #( 
-    parameter int unsigned AXI_USER_WIDTH = 1,
-    parameter int unsigned AXI_ADDR_WIDTH = 64,
-    parameter int unsigned AXI_DATA_WIDTH = 64,
-    parameter int unsigned AXI_LITE_ADDR_WIDTH = 32,
-    parameter int unsigned AXI_LITE_DATA_WIDTH = 32
+  parameter int unsigned AXI_USER_WIDTH = 1,
+  parameter int unsigned AXI_ADDR_WIDTH = 64,
+  parameter int unsigned AXI_DATA_WIDTH = 64,
+  parameter int unsigned AXI_LITE_ADDR_WIDTH = 32,
+  parameter int unsigned AXI_LITE_DATA_WIDTH = 32
 ) (
-    input logic      clk_i,
-    input logic      rst_ni,
-   
-    AXI_BUS.Slave    host_axi_lite_slave,
-    AXI_BUS.Slave    cluster_axi_lite_slave,
-   
-    AXI_LITE.Master  c2h_tlb_cfg_master,
-    AXI_LITE.Master  llc_cfg_master,
+  input logic      clk_i,
+  input logic      rst_ni,
+  
+  AXI_BUS.Slave    host_axi_lite_slave,
+  AXI_BUS.Slave    cluster_axi_lite_slave,
+  
+  AXI_LITE.Master  c2h_tlb_cfg_master,
+  AXI_LITE.Master  llc_cfg_master,
 
 `ifdef PMU_BLOCK
-    AXI_BUS.Master   axi_master,
-
-    AXI_LITE.Master  pmu_cfg_master,
-    AXI_LITE.Slave   pmu_debug_slave,
+  // Master to the AXI4 Bus.
+  AXI_BUS.Master   axi_master,
+  // Master to the PMU Slave port.
+  AXI_LITE.Master  pmu_cfg_master,
+  // Slave to the PMU Master port.
+  AXI_LITE.Slave   pmu_debug_slave,
 `endif
 
     output logic     h2c_irq_o,
@@ -178,13 +180,14 @@ module axi_lite_subsystem
   `AXI_ASSIGN_TO_RESP       ( axi_bus_resp , axi_master )
 
   // Since PMU is already 32-B and has AXI4-Lite Xbar, we do not need
-  // to perform a AXI4 to AX4-Lite 
+  // to perform a AXI4 to AX4-Lite. 
   `AXI_LITE_ASSIGN_TO_REQ    ( pmu_debug_req, pmu_debug_slave   )
   `AXI_LITE_ASSIGN_FROM_RESP ( pmu_debug_slave , pmu_debug_resp )
 `endif 
 
   typedef axi_pkg::xbar_rule_32_t tlb_cfg_xbar_rule_t;
 
+  // To Do: Parameterize this.
   localparam axi_pkg::xbar_cfg_t FromHostTlbCfgXbarCfg = '{
     NoSlvPorts:  3,
     NoMstPorts:  6,
@@ -226,10 +229,10 @@ module axi_lite_subsystem
      .clk_i                 ( clk_i                                               ),
      .rst_ni                ( rst_ni                                              ),
      .test_i                ( 1'b0                                                ),
-     .slv_ports_req_i       ( {pmu_debug_req , cluster_lite_req , host_lite_req}     ), 
-     .slv_ports_resp_o      ( {pmu_debug_resp , cluster_lite_resp, host_lite_resp}   ), 
+     .slv_ports_req_i       ( {pmu_debug_req , cluster_lite_req, host_lite_req}    ), 
+     .slv_ports_resp_o      ( {pmu_debug_resp , cluster_lite_resp, host_lite_resp} ), 
      // To Do: Clean this.
-     .mst_ports_req_o       ( {axi_bus_lite_req, pmu_cfg_req, c2hmailbox_lite_req,  h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}   ),
+     .mst_ports_req_o       ( {axi_bus_lite_req, pmu_cfg_req, c2hmailbox_lite_req,  h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}    ),
      .mst_ports_resp_i      ( {axi_bus_lite_resp, pmu_cfg_resp, c2hmailbox_lite_resp, h2cmailbox_lite_resp, llc_cfg_resp, c2h_tlb_cfg_resp} ),
      .addr_map_i            ( FromHostTlbCfgXbarAddrMap                           ),
      .en_default_mst_port_i ( {1'b0, 1'b0}                                        ),
@@ -237,7 +240,7 @@ module axi_lite_subsystem
    );  
 
    axi_lite_to_axi #(
-      .AxiDataWidth ( 32'd64                       ),
+      .AxiDataWidth ( 32'd64                      ),
       .req_lite_t   ( ariane_axi_soc::req_lite_t  ),
       .resp_lite_t  ( ariane_axi_soc::resp_lite_t ),
       .axi_req_t    ( ariane_axi_soc::req_t       ),
