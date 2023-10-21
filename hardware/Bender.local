@@ -1,3 +1,4 @@
 overrides:
   axi: { git: "https://github.com/AlSaqr-platform/axi.git" , rev: "8e29e19d31582e7f10259fb429235b6fd563e166" }
   hyperbus: { git: "git@github.com:AlSaqr-platform/hyperbus.git", rev: "48290f8f44e61c5e51db3f046ef0f23d4bd4e2dc" }
+  riscv-dbg: { git: "git@github.com:Arshaan-256/riscv-dbg.git", version: "0.0.2" }
