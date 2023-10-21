@@ -69,7 +69,8 @@ module cva6_subsystem
   output logic             jtag_TDO_driven,
 
   `ifdef PMU_BLOCK
-  // PMU
+  // From AXI4-Lite Bar
+  AXI_BUS.Slave            axi_lite_slave,
   input  logic [PMU_NUM_COUNTER-1:0]  pmu_intr_i,
   `endif
 
@@ -202,6 +203,22 @@ module cva6_subsystem
   
   assign ndmreset_n = sync_rst_ni;
    
+  // ------------------------------
+  // AXI4-Lite Master to AXI4 Slave
+  // ------------------------------
+
+  ariane_axi_soc::req_t   dummy_req;                                
+  ariane_axi_soc::resp_t  dummy_resp;
+  // assign dummy_req  = '0;
+  // assign dummy_resp = '0;
+
+  `ifdef PMU_BLOCK
+    `AXI_ASSIGN ( slave[ariane_soc::AXI4_Lite], axi_lite_slave )
+  `else
+    `AXI_ASSIGN_FROM_REQ ( slave[ariane_soc::AXI4_Lite], dummy_req  )
+    `AXI_ASSIGN_TO_RESP  ( dummy_resp, slave[ariane_soc::AXI4_Lite] )
+  `endif 
+
   // ---------------
   // Debug
   // ---------------
@@ -354,8 +371,8 @@ module cva6_subsystem
     .data_i     ( dm_slave_rdata            )
   );
 
-  `AXI_ASSIGN_FROM_REQ(slave[1],dm_axi_m_req)
-  `AXI_ASSIGN_TO_RESP(dm_axi_m_resp,slave[1])
+  `AXI_ASSIGN_FROM_REQ(slave[ariane_soc::DEBUG],dm_axi_m_req)
+  `AXI_ASSIGN_TO_RESP(dm_axi_m_resp,slave[ariane_soc::DEBUG])
 
 
    
@@ -490,7 +507,7 @@ module cva6_subsystem
   `endif
    
                        
-                 
+               
   axi_riscv_atomics_wrap #(
     .AXI_ADDR_WIDTH     ( AXI_ADDRESS_WIDTH        ),
     .AXI_DATA_WIDTH     ( AXI_DATA_WIDTH           ),
@@ -527,7 +544,7 @@ module cva6_subsystem
   // ---------------
   // AXI CLUSTER Master
   // ---------------
-  `AXI_ASSIGN(slave[2],cluster_axi_slave)
+  `AXI_ASSIGN(slave[ariane_soc::Cluster_Master],cluster_axi_slave)
    
   // ---------------
   // AXI Xbar
@@ -740,8 +757,8 @@ module cva6_subsystem
   `AXI_ASSIGN_TO_REQ(ddr_1_in_req,serial_link_master)
   `AXI_ASSIGN_FROM_RESP(serial_link_master, ddr_1_in_rsp)
 
-  `AXI_ASSIGN_FROM_REQ(slave[3], ddr_1_out_req)
-  `AXI_ASSIGN_TO_RESP(ddr_1_out_rsp, slave[3])
+  `AXI_ASSIGN_FROM_REQ(slave[ariane_soc::Serial_Link], ddr_1_out_req)
+  `AXI_ASSIGN_TO_RESP(ddr_1_out_rsp, slave[ariane_soc::Serial_Link])
 
   `REG_BUS_ASSIGN_TO_REQ(reg_req,serial_linkcfg_reg_master)
   `REG_BUS_ASSIGN_FROM_RSP(serial_linkcfg_reg_master,reg_rsp)
@@ -795,7 +812,7 @@ module cva6_subsystem
     .AxiDataWidth ( AXI_DATA_WIDTH           ),
     .AxiIdWidth   ( ariane_soc::IdWidthSlave ),
 `ifdef PMU_BLOCK
-    .PMU_NUM_COUNTER  ( PMU_NUM_COUNTER          ),
+    .PMU_NUM_COUNTER  ( PMU_NUM_COUNTER      ),
 `endif    
 `ifdef TARGET_SYNTHESIS
     .InclUART     ( 1'b1                     ),
@@ -875,16 +892,16 @@ module cva6_subsystem
   );
 
   axi_cdc_dst_intf #(
-    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
-    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
-    .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
-    .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
-    .LOG_DEPTH      ( 1                   )
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH         ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH            ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidth       ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH            ),
+    .LOG_DEPTH      ( 1                         )
   ) cva6_0_to_xbar (
-    .src            ( cva6_axi_master_dst_0 ),
-    .dst_clk_i      ( clk_i                 ),
-    .dst_rst_ni     ( ndmreset_n            ),
-    .dst            ( slave[0]              )
+    .src            ( cva6_axi_master_dst_0     ),
+    .dst_clk_i      ( clk_i                     ),
+    .dst_rst_ni     ( ndmreset_n                ),
+    .dst            ( slave[ariane_soc::Hart_0]  )
   );
 
   // ---------------
@@ -920,16 +937,16 @@ module cva6_subsystem
   );
 
   axi_cdc_dst_intf #(
-    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
-    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
-    .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
-    .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
-    .LOG_DEPTH      ( 1                   )
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH         ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH            ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidth       ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH            ),
+    .LOG_DEPTH      ( 1                         )
   ) cva6_1_to_xbar (
-    .src            ( cva6_axi_master_dst_1 ),
-    .dst_clk_i      ( clk_i                 ),
-    .dst_rst_ni     ( ndmreset_n            ),
-    .dst            ( slave[4]              )
+    .src            ( cva6_axi_master_dst_1     ),
+    .dst_clk_i      ( clk_i                     ),
+    .dst_rst_ni     ( ndmreset_n                ),
+    .dst            ( slave[ariane_soc::Hart_1]  )
   );
 
   // ---------------
@@ -965,16 +982,16 @@ module cva6_subsystem
   );
 
   axi_cdc_dst_intf #(
-    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
-    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
-    .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
-    .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
-    .LOG_DEPTH      ( 1                   )
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH         ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH            ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidth       ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH            ),
+    .LOG_DEPTH      ( 1                         )
   ) cva6_2_to_xbar (
-    .src            ( cva6_axi_master_dst_2 ),
-    .dst_clk_i      ( clk_i                 ),
-    .dst_rst_ni     ( ndmreset_n            ),
-    .dst            ( slave[5]              )
+    .src            ( cva6_axi_master_dst_2     ),
+    .dst_clk_i      ( clk_i                     ),
+    .dst_rst_ni     ( ndmreset_n                ),
+    .dst            ( slave[ariane_soc::Hart_2]  )
   );
 
   // // ---------------
@@ -1010,16 +1027,16 @@ module cva6_subsystem
   );
 
   axi_cdc_dst_intf #(
-    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
-    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
-    .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
-    .AXI_USER_WIDTH ( AXI_USER_WIDTH      ),
-    .LOG_DEPTH      ( 1                   )
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH         ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH            ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidth       ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH            ),
+    .LOG_DEPTH      ( 1                         )
   ) cva6_3_to_xbar (
-    .src            ( cva6_axi_master_dst_3 ),
-    .dst_clk_i      ( clk_i                 ),
-    .dst_rst_ni     ( ndmreset_n            ),
-    .dst            ( slave[6]              )
+    .src            ( cva6_axi_master_dst_3     ),
+    .dst_clk_i      ( clk_i                     ),
+    .dst_rst_ni     ( ndmreset_n                ),
+    .dst            ( slave[ariane_soc::Hart_3]  )
   );
    
 endmodule
