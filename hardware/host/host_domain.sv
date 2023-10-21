@@ -305,11 +305,11 @@ module host_domain
   // For size in Bytes, 11-bits are enough (8 for AXI_LENGTH and 3 for AXI_SIZE).
   // For size in cachelines, 6-bits are enough.
   PMU_INTF #(
-    .EVENT_INFO_BITS    ( 16                        )
+    .EVENT_INFO_BITS    ( EVENT_INFO_BITS_LLC_IN    )
   ) spu_llc_in ();
 
   PMU_INTF #(
-    .EVENT_INFO_BITS    ( 16                        )
+    .EVENT_INFO_BITS    ( EVENT_INFO_BITS_LLC_IN    )
   ) spu_llc_out ();
 
   spu_top #(
@@ -391,7 +391,6 @@ module host_domain
 
   `AXI_LITE_ASSIGN_TO_REQ( axi_lite_pmu_cfg_req, pmu_cfg_lite_bus )
   `AXI_LITE_ASSIGN_FROM_RESP( pmu_cfg_lite_bus, axi_lite_pmu_cfg_res )
-  
 `endif
 
   AXI_LITE #(
@@ -403,19 +402,19 @@ module host_domain
   XBAR_TCDM_BUS udma_2_tcdm_channels[NB_UDMA_TCDM_CHANNEL]();
 
 
-  `ifdef XILINX_DDR
-    AXI_BUS #(
-      .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH           ),
-      .AXI_DATA_WIDTH ( AXI_DATA_WIDTH              ),
-      .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave +1 ),
-      .AXI_USER_WIDTH ( AXI_USER_WIDTH              )
-    ) dummyaxibus();
-    assign dummyaxibus.aw_valid  = 1'b0;
-    assign dummyaxibus.ar_valid  = 1'b0;
-    assign dummyaxibus.w_valid   = 1'b0;
+`ifdef XILINX_DDR
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH           ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH              ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave +1 ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH              )
+  ) dummyaxibus();
+  assign dummyaxibus.aw_valid  = 1'b0;
+  assign dummyaxibus.ar_valid  = 1'b0;
+  assign dummyaxibus.w_valid   = 1'b0;
 
-    `AXI_ASSIGN(axi_ddr_master,mem_axi_bus)
-  `endif
+  `AXI_ASSIGN(axi_ddr_master,mem_axi_bus)
+`endif
 
 `ifdef EXCLUDE_LLC
   `AXI_ASSIGN(mem_axi_bus,hyper_axi_bus)
@@ -457,19 +456,19 @@ module host_domain
 `else
 
 `ifdef PMU_BLOCK
-  `AXI_ASSIGN_TO_REQ( axi_cpu_req, hyper_axi_spu_o_bus )
-  `AXI_ASSIGN_FROM_RESP( hyper_axi_spu_o_bus,axi_cpu_res )
-
+  // Converts AXI BUS signals to request packets.
+  `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_spu_o_bus )
+  `AXI_ASSIGN_FROM_RESP( hyper_axi_spu_o_bus, axi_cpu_res )
+  // Converts request packets to AXI Bus signals.
   `AXI_ASSIGN_FROM_REQ( mem_axi_bus_spu_o_bus, axi_mem_req )
   `AXI_ASSIGN_TO_RESP( axi_mem_res, mem_axi_bus_spu_o_bus )
-  // `AXI_ASSIGN_TO_REQ(axi_cpu_req,hyper_axi_spu_o_bus)
-  // `AXI_ASSIGN_FROM_RESP(hyper_axi_spu_o_bus,axi_cpu_res)
 `else
-  `AXI_ASSIGN_TO_REQ( axi_cpu_req, hyper_axi_bus )
+  // Converts AXI BUS signals to request packets.
+  `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_bus )
   `AXI_ASSIGN_FROM_RESP( hyper_axi_bus, axi_cpu_res )
-
-  `AXI_ASSIGN_FROM_REQ(mem_axi_bus,axi_mem_req)
-  `AXI_ASSIGN_TO_RESP(axi_mem_res,mem_axi_bus)
+  // Converts request packets to AXI Bus signals.
+  `AXI_ASSIGN_FROM_REQ( mem_axi_bus, axi_mem_req )
+  `AXI_ASSIGN_TO_RESP( axi_mem_res, mem_axi_bus )
 `endif 
   
   `AXI_LITE_ASSIGN_TO_REQ(axi_llc_cfg_req,llc_cfg_bus)
