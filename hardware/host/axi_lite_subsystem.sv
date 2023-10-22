@@ -67,11 +67,13 @@ parameter int unsigned AXI_LITE_DATA_WIDTH = 32
                                h2cmailbox_lite_resp,
                                c2hmailbox_lite_resp;
 
-  ariane_axi_soc::req_lite_t  pmu_cfg_req,        // Connects to PMU-Slave device.
-                              axi_bus_lite_req,   // Connects to AXI4-Slave device.
-                              pmu_debug_req;      // Comes from PMU-Master device.
+  ariane_axi_soc::req_lite_t  pmu_cfg_req,          // Connects to PMU-Slave device.
+                              axi_bus_lite_req_q,   // Connects to AXI4-Slave device.
+                              axi_bus_lite_req_d,
+                              pmu_debug_req;        // Comes from PMU-Master device.
   ariane_axi_soc::resp_lite_t pmu_cfg_resp,
-                              axi_bus_lite_resp,
+                              axi_bus_lite_resp_q,
+                              axi_bus_lite_resp_d,
                               pmu_debug_resp;
 
   ariane_axi_soc::req_t   axi_bus_req;                                
@@ -232,12 +234,17 @@ parameter int unsigned AXI_LITE_DATA_WIDTH = 32
     .test_i                ( 1'b0                                                ),
     .slv_ports_req_i       ( {pmu_debug_req, cluster_lite_req , host_lite_req }  ), 
     .slv_ports_resp_o      ( {pmu_debug_resp, cluster_lite_resp, host_lite_resp} ), 
-    .mst_ports_req_o       ( {axi_bus_lite_req, pmu_cfg_req, c2hmailbox_lite_req, h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}     ),
-    .mst_ports_resp_i      ( {axi_bus_lite_resp, pmu_cfg_resp, c2hmailbox_lite_resp, h2cmailbox_lite_resp, llc_cfg_resp, c2h_tlb_cfg_resp} ),
+    .mst_ports_req_o       ( {axi_bus_lite_req_d, pmu_cfg_req, c2hmailbox_lite_req, h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}     ),
+    .mst_ports_resp_i      ( {axi_bus_lite_resp_q, pmu_cfg_resp, c2hmailbox_lite_resp, h2cmailbox_lite_resp, llc_cfg_resp, c2h_tlb_cfg_resp} ),
     .addr_map_i            ( FromHostTlbCfgXbarAddrMap                           ),
     .en_default_mst_port_i ( {1'b0, 1'b0}                                        ),
     .default_mst_port_i    ( '0                                                  )
    );
+
+  always_ff @ (posedge clk_i) begin
+    axi_bus_lite_req_q  <= axi_bus_lite_req_d;
+    axi_bus_lite_resp_q <= axi_bus_lite_resp_d;
+  end
 
    axi_lite_to_axi #(
       .AxiDataWidth ( 32'd64                      ),
@@ -246,8 +253,8 @@ parameter int unsigned AXI_LITE_DATA_WIDTH = 32
       .axi_req_t    ( ariane_axi_soc::req_t       ),
       .axi_resp_t   ( ariane_axi_soc::resp_t      )
    ) i_axi_lite_to_axi (
-      .slv_req_lite_i   ( axi_bus_lite_req        ),
-      .slv_resp_lite_o  ( axi_bus_lite_resp       ),
+      .slv_req_lite_i   ( axi_bus_lite_req_q      ),
+      .slv_resp_lite_o  ( axi_bus_lite_resp_d     ),
       .slv_aw_cache_i   ( 4'd0                    ),
       .slv_ar_cache_i   ( 4'd0                    ),
       // Master AXI port
