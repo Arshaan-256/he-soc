@@ -164,28 +164,28 @@ parameter int unsigned AXI_LITE_DATA_WIDTH = 32
   );
    
   `AXI_LITE_ASSIGN_TO_REQ    ( host_lite_req, host_axi_lite_xbar_master   )
-  `AXI_LITE_ASSIGN_FROM_RESP ( host_axi_lite_xbar_master , host_lite_resp )
+  `AXI_LITE_ASSIGN_FROM_RESP ( host_axi_lite_xbar_master, host_lite_resp )
 
   `AXI_LITE_ASSIGN_TO_REQ    ( cluster_lite_req, cluster_axi_lite_xbar_master  )
   `AXI_LITE_ASSIGN_FROM_RESP ( cluster_axi_lite_xbar_master, cluster_lite_resp )
 
-  `AXI_LITE_ASSIGN_FROM_REQ ( c2h_tlb_cfg_master     , c2h_tlb_cfg_req )
+  `AXI_LITE_ASSIGN_FROM_REQ ( c2h_tlb_cfg_master, c2h_tlb_cfg_req )
   `AXI_LITE_ASSIGN_TO_RESP  ( c2h_tlb_cfg_resp, c2h_tlb_cfg_master     )
 
-  `AXI_LITE_ASSIGN_FROM_REQ ( llc_cfg_master , llc_cfg_req  )
-  `AXI_LITE_ASSIGN_TO_RESP  ( llc_cfg_resp , llc_cfg_master )
+  `AXI_LITE_ASSIGN_FROM_REQ ( llc_cfg_master, llc_cfg_req  )
+  `AXI_LITE_ASSIGN_TO_RESP  ( llc_cfg_resp, llc_cfg_master )
 
 `ifdef PMU_BLOCK
-  `AXI_LITE_ASSIGN_FROM_REQ ( pmu_cfg_master , pmu_cfg_req  )
-  `AXI_LITE_ASSIGN_TO_RESP  ( pmu_cfg_resp , pmu_cfg_master )
+  `AXI_LITE_ASSIGN_FROM_REQ ( pmu_cfg_master, pmu_cfg_req  )
+  `AXI_LITE_ASSIGN_TO_RESP  ( pmu_cfg_resp, pmu_cfg_master )
 
-  `AXI_ASSIGN_FROM_REQ      ( axi_master , axi_bus_req  )
-  `AXI_ASSIGN_TO_RESP       ( axi_bus_resp , axi_master )  
+  `AXI_ASSIGN_FROM_REQ      ( axi_master, axi_bus_req  )
+  `AXI_ASSIGN_TO_RESP       ( axi_bus_resp, axi_master )  
 
   // Since PMU is already 32-B and has AXI4-Lite Xbar, we do not need
   // to perform a AXI4 to AX4-Lite.
   `AXI_LITE_ASSIGN_TO_REQ    ( pmu_debug_req, pmu_debug_slave   )
-  `AXI_LITE_ASSIGN_FROM_RESP ( pmu_debug_slave , pmu_debug_resp )
+  `AXI_LITE_ASSIGN_FROM_RESP ( pmu_debug_slave, pmu_debug_resp )
 `endif
 
   typedef axi_pkg::xbar_rule_32_t tlb_cfg_xbar_rule_t;
