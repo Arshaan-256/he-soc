@@ -121,3 +121,10 @@ uint32_t run_pmu_core_test_suite (
             uint32_t num_counter,
             uint32_t arr_len,
             uint32_t DEBUG);
+
+uint32_t test_pmu_debug_func (
+              uint32_t program_start_addr,
+              uint32_t pmc_status_base_addr, 
+              uint32_t num_counter,
+              uint32_t wait_before_resuming,
+              uint32_t DEBUG);            

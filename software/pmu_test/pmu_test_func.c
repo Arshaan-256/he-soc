@@ -406,3 +406,112 @@ uint32_t test_pmu_core_counter_b_writes (
 
   return error_count;
 }
+
+
+// This test has a lot of problems mainly because the debug module and my hacks are not fully compatible.
+// If the debug module is blocking/has blocked/is resuming a core then any debug request from the PMU is ignored.
+uint32_t test_pmu_debug_func (
+              uint32_t program_start_addr,
+              uint32_t pmc_status_base_addr, 
+              uint32_t num_counter,
+              uint32_t wait_before_resuming,
+              uint32_t DEBUG) {
+
+  uint32_t program[] = {
+    0x33,         // The first instruction to the core is discarded so it must be NOP.
+    0x400093,     // addi x1,x0,num_counter
+    0x1400313,    // addi x6,x0,wait_before_resuming
+    0x137,        
+    0x20010113,
+    0x213,
+    0x293,
+    0x412023,
+    0x120213,
+    0x128293,
+    0xfe129ae3,
+    0x3b3,
+    0x33,
+    0x138393,
+    0xfe639ce3,
+    0x213,
+    0x293,
+    0x412423,
+    0x120213,
+    0x128293,
+    0xfe129ae3,
+    0x33,
+    0xfe000ee3
+  };
+
+  uint32_t error_count = 0;
+  uint32_t instruction;
+  uint32_t program_size = sizeof(program) / sizeof(program[0]);
+
+  // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
+  instruction = encodeADDI(1, 0, num_counter & 0xFFF, (DEBUG >= 1));
+  program[1] = instruction;
+  // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
+  instruction = encodeADDI(6, 0, wait_before_resuming & 0xFFF, (DEBUG >= 1));
+  program[2] = instruction;
+
+  if (DEBUG >= 1)
+    printf("Halt PMU core before writing to ISPM!\n");
+  write_32b(pmc_status_base_addr, 1);
+
+  if (DEBUG >= 1)
+    printf("Writing program to PMU-ISPM!\n");
+  error_count += test_spm(program_start_addr, program_size, program);
+  
+  // For simulation, wait until all cores are up and running.
+  // To do: A better way of doing this.
+  uint32_t res = array_traversal(num_counter*150);
+
+  if (DEBUG >= 1)
+    printf("Start PMU core! %0d\n", res);
+  write_32b(pmc_status_base_addr, 0);
+  return error_count;
+}
+
+uint32_t run_pmu_core_test_suite (
+            uint32_t ispm_base_addr, 
+            uint32_t counter_b_base_addr,
+            uint32_t dspm_base_addr,
+            uint32_t pmc_status_base_addr, 
+            uint32_t counter_b_size,
+            uint32_t num_counter,
+            uint32_t arr_len,
+            uint32_t DEBUG) {
+  uint32_t error;
+  uint32_t error_count = 0;
+
+  error = test_spm_rand(ispm_base_addr, arr_len);
+  error_count += error;
+  printf("Reads-writes to ISPM completed. Errors: %0d!\n", error);
+
+  error = test_spm_rand(dspm_base_addr, arr_len);
+  error_count += error;
+  printf("Reads-writes to DSPM completed. Errors: %0d!\n", error);
+
+  error = test_pmu_core_bubble_sort(
+              ispm_base_addr,
+              dspm_base_addr,
+              pmc_status_base_addr,
+              arr_len,            
+              DEBUG);
+  error_count += error;                  
+  printf("BubbleSort test completed. Errors: %0d!\n", error);
+                                    
+  error = test_pmu_core_counter_b_writes(
+            ispm_base_addr,
+            counter_b_base_addr,
+            dspm_base_addr,
+            pmc_status_base_addr,
+            counter_b_size,
+            num_counter,            
+            DEBUG);
+  error_count += error;                  
+  printf("PMU core reads-writes to PMU registers completed. Errors: %0d!\n", error);
+
+  printf("pmu_core_test_suite completed. Errors: %0d!\n", error_count);
+  return error_count;
+}
