@@ -48,7 +48,7 @@
 #define PMU_B_BASE_ADDR     0x10404000
 #define TIMER_ADDR          (PMU_B_BASE_ADDR)
 #define PERIOD_ADDR         (PMU_B_BASE_ADDR + TIMER_WIDTH)
-#define STATUS_ADDR         (PMU_B_BASE_ADDR + 2*TIMER_WIDTH)
+#define PMC_STATUS_ADDR     (PMU_B_BASE_ADDR + 2*TIMER_WIDTH)
 // Two 64-bit (8B) timer and one 32-bit status registers in the PMU bundle.
 #define PMU_BUNDLE_SIZE     2*TIMER_WIDTH + STATUS_WIDTH
 
