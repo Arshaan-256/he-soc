@@ -167,11 +167,12 @@ uint32_t test_spm_rand(uint64_t base_addr, uint32_t num_rw) {
   return test_spm(base_addr, num_rw, rand_val);
 }
 
-uint32_t test_pmu_core_bubble_sort (uint32_t program_start_addr, 
-                                    uint32_t arr_base,
-                                    uint32_t status_base_addr, 
-                                    uint32_t len, 
-                                    uint32_t DEBUG) {
+uint32_t test_pmu_core_bubble_sort (
+              uint32_t program_start_addr, 
+              uint32_t arr_base,
+              uint32_t pmc_status_base_addr, 
+              uint32_t len, 
+              uint32_t DEBUG) {
   uint32_t program[] = {
     0x33,         // The first instruction to the core is discarded so it must be NOP.
     0x00000000,   // lui x1, (arr_base >> 12)
@@ -195,24 +196,25 @@ uint32_t test_pmu_core_bubble_sort (uint32_t program_start_addr,
   };
 
   uint32_t error_count = 0;
+  uint32_t prev_error_count = -1;
   uint32_t instruction;
   uint32_t cva6_val[len];
   uint32_t ibex_val[len];
   uint32_t program_size = sizeof(program) / sizeof(program[0]);
   
   // encodeLUI (uint32_t rd, uint32_t imm)
-  instruction = encodeLUI(1, arr_base >> 12, (DEBUG >= 1));
+  instruction = encodeLUI(1, arr_base >> 12, (DEBUG >= 2));
   program[1] = instruction;
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(1, 1, arr_base & 0xFFF, (DEBUG >= 1));
+  instruction = encodeADDI(1, 1, arr_base & 0xFFF, (DEBUG >= 2));
   program[2] = instruction;
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(2,1,(len-1)*4, (DEBUG >= 1));
+  instruction = encodeADDI(2,1,(len-1)*4, (DEBUG >= 2));
   program[3] = instruction;
 
   if (DEBUG >= 1)
     printf("Halt PMU core before writing to ISPM!\n");
-  write_32b(status_base_addr, 1);
+  write_32b(pmc_status_base_addr, 1);
 
   if (DEBUG >= 1)
     printf("Writing program to PMU-ISPM!\n");
@@ -232,7 +234,7 @@ uint32_t test_pmu_core_bubble_sort (uint32_t program_start_addr,
 
   if (DEBUG >= 1)
     printf("Start PMU core!\n");
-  write_32b(status_base_addr, 0);
+  write_32b(pmc_status_base_addr, 0);
 
   // Sort array, this is golden output.
   bubble_sort(cva6_val, len);
@@ -243,24 +245,25 @@ uint32_t test_pmu_core_bubble_sort (uint32_t program_start_addr,
     }
   }
 
-  // This keeps CVA6 busy so that the PMU core gets time to finish sorting.
-  if (DEBUG < 2) {
-    uint32_t out = array_traversal(20*len);
-  }
-
-  read_32b_regs(arr_base, len, ibex_val, 0x4);
-  if (DEBUG >= 2) {
-    printf("Output array!\n");
+  // Keep polling DSPM and comparing array outputs. 
+  // Exit when either the error_count = 0 or when it stabilizes.
+  while (prev_error_count == error_count) {
+    prev_error_count = error_count;
+    error_count = 0;
+    read_32b_regs(arr_base, len, ibex_val, 0x4);
     for (uint32_t i=0; i<len; i++) {
-      printf("%x: %0d\n",&ibex_val[i], ibex_val[i]);
+      if (cva6_val[i] != ibex_val[i]) {
+        error_count += 1;
+      }
     }
   }
 
-  for (uint32_t i=0; i<len; i++) {
-    if (cva6_val[i] != ibex_val[i]) {
-      error_count += 1;
+  if (DEBUG >= 2) {
+      printf("Output array!\n");
+      for (uint32_t i=0; i<len; i++) {
+        printf("%x: %0d\n",&ibex_val[i], ibex_val[i]);
+      }
     }
-  }
   
   return error_count;
 }
@@ -291,13 +294,14 @@ void bubble_sort (uint32_t *array, uint32_t len) {
   }
 }
 
-uint32_t test_pmu_core_counter_b_writes (uint32_t program_start_addr, 
-                                         uint32_t counter_b_base_addr,
-                                         uint32_t target_addr,
-                                         uint32_t status_base_addr, 
-                                         uint32_t counter_b_size,
-                                         uint32_t num_counter,
-                                         uint32_t DEBUG) {
+uint32_t test_pmu_core_counter_b_writes (
+            uint32_t program_start_addr, 
+            uint32_t counter_b_base_addr,
+            uint32_t target_addr,
+            uint32_t pmc_status_base_addr, 
+            uint32_t counter_b_size,
+            uint32_t num_counter,
+            uint32_t DEBUG) {
     
   uint32_t program[] = {
     0x33,         // The first instruction to the core is discarded so it must be NOP.
@@ -335,27 +339,27 @@ uint32_t test_pmu_core_counter_b_writes (uint32_t program_start_addr,
   counter_b_t rval[num_counter];
 
   // encodeLUI (uint32_t rd, uint32_t imm)
-  instruction = encodeLUI(1, counter_b_base_addr >> 12, (DEBUG >= 1));
+  instruction = encodeLUI(1, counter_b_base_addr >> 12, (DEBUG >= 2));
   program[1] = instruction;
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(1, 1, counter_b_base_addr & 0xFFF, (DEBUG >= 1));
+  instruction = encodeADDI(1, 1, counter_b_base_addr & 0xFFF, (DEBUG >= 2));
   program[2] = instruction;
   // encodeLUI (uint32_t rd, uint32_t imm)
-  instruction = encodeLUI(7, target_addr >> 12, (DEBUG >= 1));
+  instruction = encodeLUI(7, target_addr >> 12, (DEBUG >= 2));
   program[3] = instruction;
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(7, 7, target_addr & 0xFFF, (DEBUG >= 1));
+  instruction = encodeADDI(7, 7, target_addr & 0xFFF, (DEBUG >= 2));
   program[4] = instruction;
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(2,0,num_counter, (DEBUG >= 1));
+  instruction = encodeADDI(2,0,num_counter, (DEBUG >= 2));
   program[5] = instruction;
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(3,0,COUNTER_BUNDLE_SIZE, (DEBUG >= 1));
+  instruction = encodeADDI(3,0,COUNTER_BUNDLE_SIZE, (DEBUG >= 2));
   program[6] = instruction;
 
   if (DEBUG >= 1)
     printf("Halt PMU core before writing to ISPM!\n");
-  write_32b(status_base_addr, 1);
+  write_32b(pmc_status_base_addr, 1);
 
   if (DEBUG >= 1)
     printf("Writing program to PMU-ISPM!\n");
@@ -363,7 +367,7 @@ uint32_t test_pmu_core_counter_b_writes (uint32_t program_start_addr,
 
   if (DEBUG >= 1)
     printf("Start PMU core!\n");
-  write_32b(status_base_addr, 0);
+  write_32b(pmc_status_base_addr, 0);
 
   while (1) {
     uint read_target = read_32b(target_addr);
