@@ -407,6 +407,9 @@ uint32_t test_pmu_core_counter_b_writes (
   return error_count;
 }
 
+
+// This test has a lot of problems mainly because the debug module and my hacks are not fully compatible.
+// If the debug module is blocking/has blocked/is resuming a core then any debug request from the PMU is ignored.
 uint32_t test_pmu_debug_func (
               uint32_t program_start_addr,
               uint32_t pmc_status_base_addr, 
@@ -445,10 +448,10 @@ uint32_t test_pmu_debug_func (
   uint32_t program_size = sizeof(program) / sizeof(program[0]);
 
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(1, 1, num_counter & 0xFFF, (DEBUG >= 1));
+  instruction = encodeADDI(1, 0, num_counter & 0xFFF, (DEBUG >= 1));
   program[1] = instruction;
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(6, 1, wait_before_resuming & 0xFFF, (DEBUG >= 1));
+  instruction = encodeADDI(6, 0, wait_before_resuming & 0xFFF, (DEBUG >= 1));
   program[2] = instruction;
 
   if (DEBUG >= 1)
@@ -458,9 +461,13 @@ uint32_t test_pmu_debug_func (
   if (DEBUG >= 1)
     printf("Writing program to PMU-ISPM!\n");
   error_count += test_spm(program_start_addr, program_size, program);
+  
+  // For simulation, wait until all cores are up and running.
+  // To do: A better way of doing this.
+  uint32_t res = array_traversal(num_counter*150);
 
   if (DEBUG >= 1)
-    printf("Start PMU core!\n");
+    printf("Start PMU core! %0d\n", res);
   write_32b(pmc_status_base_addr, 0);
   return error_count;
 }
