@@ -370,6 +370,7 @@ module cva6_subsystem
     .axi_resp_i            ( dm_axi_m_resp             )
   );
 
+
   // ---------------
   // ROM
   // ---------------
@@ -474,7 +475,7 @@ module cva6_subsystem
   `endif
    
                        
-                 
+               
   axi_riscv_atomics_wrap #(
     .AXI_ADDR_WIDTH     ( AXI_ADDRESS_WIDTH        ),
     .AXI_DATA_WIDTH     ( AXI_DATA_WIDTH           ),
@@ -522,7 +523,7 @@ module cva6_subsystem
                                          MaxMstTrans: ariane_soc::NB_PERIPHERALS,
                                          MaxSlvTrans: ariane_soc::NrSlaves,
                                          FallThrough: 1'b0,        
-                                         LatencyMode: axi_pkg::NO_LATENCY, // If you cut anything, you might want to remove the soc2cluster_cut.
+                                         LatencyMode: axi_pkg::CUT_SLV_AX, // If you cut anything, you might want to remove the soc2cluster_cut.
                                          PipelineStages: 32'd0,
                                          AxiIdWidthSlvPorts: ariane_soc::IdWidth,
                                          AxiIdUsedSlvPorts: ariane_soc::IdWidth,
@@ -771,23 +772,23 @@ module cva6_subsystem
   logic [1:0] irqs;
 
   ariane_peripherals #(
-    .AxiAddrWidth     ( AXI_ADDRESS_WIDTH        ),
-    .AxiDataWidth     ( AXI_DATA_WIDTH           ),
-    .AxiIdWidth       ( ariane_soc::IdWidthSlave ),
+    .AxiAddrWidth ( AXI_ADDRESS_WIDTH        ),
+    .AxiDataWidth ( AXI_DATA_WIDTH           ),
+    .AxiIdWidth   ( ariane_soc::IdWidthSlave ),
 `ifdef PMU_BLOCK
-    .PMU_NUM_COUNTER  ( PMU_NUM_COUNTER          ),
-`endif
+    .PMU_NUM_COUNTER  ( PMU_NUM_COUNTER      ),
+`endif    
 `ifdef TARGET_SYNTHESIS
-    .InclUART         ( 1'b1                     ),
+    .InclUART     ( 1'b1                     ),
 `else
-    .InclUART         ( 1'b0                     ),
+    .InclUART     ( 1'b0                     ),
 `endif
 `ifdef TARGET_FPGA  
-    .InclSPI          ( 1'b1                     ),
+    .InclSPI      ( 1'b1                     ),
 `else
-    .InclSPI          ( 1'b0                     ),
+    .InclSPI      ( 1'b0                     ),
 `endif
-    .InclEthernet     ( 1'b0                     )
+    .InclEthernet ( 1'b0                     )
   ) i_ariane_peripherals (
     .clk_i           ( clk_i                        ),
     .rst_ni          ( ndmreset_n                   ),
