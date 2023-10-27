@@ -39,25 +39,25 @@ module host_domain
       import pkg_alsaqr_periph_fpga_padframe::*; 
   `endif
   import axi_llc_pkg::events_t;
-  #(
+#(
   parameter int unsigned AXI_USER_WIDTH    = 1,
   parameter int unsigned AXI_ADDRESS_WIDTH = 64,
   parameter int unsigned AXI_DATA_WIDTH    = 64,
   // AXILITE parameters
   parameter int unsigned AXI_LITE_AW       = 32,
   parameter int unsigned AXI_LITE_DW       = 32,
-  `ifdef DROMAJO
+`ifdef DROMAJO
   parameter bit          InclSimDTM        = 1'b0,
-  `else
+`else
   parameter bit          InclSimDTM        = 1'b1,
-  `endif
+`endif
   parameter int unsigned NUM_WORDS         = 2**25,         // memory size
   parameter bit          StallRandomOutput = 1'b0,
   parameter bit          StallRandomInput  = 1'b0,
   parameter bit          JtagEnable        = 1'b1,
   parameter int unsigned CAM_DATA_WIDTH    = 8,
   parameter int unsigned NUM_GPIO          = 64
-  ) (
+) (
   input logic                 rtc_i,
   input logic                 rst_ni,
   input logic                 bypass_clk_i,
@@ -77,7 +77,7 @@ module host_domain
   output logic                cva6_uart_tx_o, 
   input  logic                apb_uart_rx_i,   
   output logic                apb_uart_tx_o,
-
+  
   // FROM SimDTM
   input logic                 dmi_req_valid,
   output logic                dmi_req_ready,
@@ -113,7 +113,7 @@ module host_domain
   // I2C
   output                      i2c_to_pad_t [N_I2C-1:0] i2c_to_pad,
   input                       pad_to_i2c_t [N_I2C-1:0] pad_to_i2c,
-    
+   
   // CAM
   input                       pad_to_cam_t [N_CAM-1:0] pad_to_cam,
     
@@ -132,7 +132,7 @@ module host_domain
   //CAN
   output                      can_to_pad_t [N_CAN-1 : 0] can_to_pad,
   input                       pad_to_can_t [N_CAN-1 : 0] pad_to_can,
-
+ 
   // HYPERBUS
   `ifndef XILINX_DDR
   inout  [HyperbusNumPhys-1:0][NumChipsPerHyperbus-1:0] pad_hyper_csn,
@@ -149,8 +149,6 @@ module host_domain
   input  pad_to_gpio_t        pad_to_gpio
 
 );
-
-  
   ariane_axi_soc::req_slv_t  axi_cpu_req;
   ariane_axi_soc::resp_slv_t axi_cpu_res;
 
@@ -171,7 +169,7 @@ module host_domain
   localparam int unsigned EVENT_INFO_BITS_LLC_IN = 16;
   logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
 `endif 
-  
+   
   // rule definitions
   typedef struct packed {
     int unsigned             idx;
@@ -218,7 +216,7 @@ module host_domain
   logic                                 s_llc_write_miss_cache;
 
   axi_llc_pkg::events_t llc_events;
-
+   
   REG_BUS #(
       .ADDR_WIDTH( 32 ),
       .DATA_WIDTH( 32 )
@@ -226,10 +224,11 @@ module host_domain
       .clk_i (s_soc_clk)
   ); 
 
+
   assign   soc_clk_o  = s_soc_clk;
   assign   soc_rst_no = s_synch_soc_rst;
   assign   rstn_cluster_sync_o = s_rstn_cluster_sync;
-
+  
   AXI_BUS #(
     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
     .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
@@ -257,6 +256,17 @@ module host_domain
     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
     .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
   ) host_lite_bus ();
+  
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH          ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH             ),
+    `ifdef EXCLUDE_LLC
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave   ),
+    `else
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave+1 ),
+    `endif
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH             )
+  ) mem_axi_bus (); 
 
   AXI_BUS #(
     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH          ),
@@ -267,33 +277,22 @@ module host_domain
     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave+1 ),
     `endif
     .AXI_USER_WIDTH ( AXI_USER_WIDTH             )
-  ) mem_axi_bus ();
-
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH          ),
-    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH             ),
-    `ifdef EXCLUDE_LLC
-    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave   ),
-    `else
-    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave+1 ),
-    `endif
-    .AXI_USER_WIDTH ( AXI_USER_WIDTH             )
-  ) mem_axi_bus_spu_o_bus ();
+  ) mem_axi_bus_spu_o_bus ();   
 
 `ifdef PMU_BLOCK
   AXI_BUS #(
-      .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
-      .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
-      .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
-      .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
   ) hyper_axi_spu_o_bus ();
-  
+
   AXI_BUS #(
       .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
       .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
       .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
       .AXI_USER_WIDTH ( AXI_USER_WIDTH           )
-  ) axi_lite_to_axi_bus ();
+  ) axi_lite_to_axi_bus ();  
 
   // Maximum beat size is 64-bit, 8B.
   // AXI_BURST_SIZE = (AXI_LEN+1) << AXI_SIZE;
@@ -364,11 +363,11 @@ module host_domain
     .AxiLiteDataWidth ( AXI_LITE_DW                   ),
     .lite_req_t       ( ariane_axi_soc::req_lite_t    ),
     .lite_resp_t      ( ariane_axi_soc::resp_lite_t   )
-  ) i_pmu (
+  ) i_pmu_top (
     .clk_i            ( s_soc_clk                     ),
     .rst_ni           ( s_synch_soc_rst               ),
     .port_1_i         ( spu_llc_in                    ),
-    .port_2_i         ( spu_llc_out                   ),    
+    .port_2_i         ( spu_llc_out                   ),
     .conf_req_i       ( axi_lite_pmu_cfg_req          ),
     .conf_resp_o      ( axi_lite_pmu_cfg_res          ),
     .debug_req_o      ( pmu_debug_req                 ),
@@ -387,9 +386,9 @@ module host_domain
   ) pmu_cfg_lite_bus();
 
   `AXI_LITE_ASSIGN_FROM_REQ( pmu_debug_axi_bus , pmu_debug_req )
-  `AXI_LITE_ASSIGN_TO_RESP( pmu_debug_res , pmu_debug_axi_bus )
+  `AXI_LITE_ASSIGN_TO_RESP( pmu_debug_res , pmu_debug_axi_bus  )
 
-  `AXI_LITE_ASSIGN_TO_REQ( axi_lite_pmu_cfg_req, pmu_cfg_lite_bus )
+  `AXI_LITE_ASSIGN_TO_REQ( axi_lite_pmu_cfg_req, pmu_cfg_lite_bus    )
   `AXI_LITE_ASSIGN_FROM_RESP( pmu_cfg_lite_bus, axi_lite_pmu_cfg_res )
 `endif
 
@@ -401,7 +400,6 @@ module host_domain
   XBAR_TCDM_BUS axi_bridge_2_interconnect[AXI64_2_TCDM32_N_PORTS]();
   XBAR_TCDM_BUS udma_2_tcdm_channels[NB_UDMA_TCDM_CHANNEL]();
 
-
 `ifdef XILINX_DDR
   AXI_BUS #(
     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH           ),
@@ -412,7 +410,8 @@ module host_domain
   assign dummyaxibus.aw_valid  = 1'b0;
   assign dummyaxibus.ar_valid  = 1'b0;
   assign dummyaxibus.w_valid   = 1'b0;
-
+  
+  
   `AXI_ASSIGN(axi_ddr_master,mem_axi_bus)
 `endif
 
@@ -434,7 +433,7 @@ module host_domain
   assign s_llc_read_miss_cache  = 1'b0;
   assign s_llc_write_hit_cache  = 1'b0;
   assign s_llc_write_miss_cache = 1'b0;
-
+  
   always_comb begin
     r_valid_d = r_valid_q;
     if(!r_valid_q && llc_cfg_bus.ar_valid)
@@ -470,10 +469,10 @@ module host_domain
   `AXI_ASSIGN_FROM_REQ( mem_axi_bus, axi_mem_req )
   `AXI_ASSIGN_TO_RESP( axi_mem_res, mem_axi_bus )
 `endif 
-  
+
   `AXI_LITE_ASSIGN_TO_REQ(axi_llc_cfg_req,llc_cfg_bus)
   `AXI_LITE_ASSIGN_FROM_RESP(llc_cfg_bus,axi_llc_cfg_res)
-
+  
   axi_llc_top #(
     .SetAssociativity ( LLC_SET_ASSOC                  ),
     .NumLines         ( LLC_NUM_LINES                  ),
@@ -484,6 +483,7 @@ module host_domain
     .AxiUserWidth     ( AXI_USER_WIDTH                 ),
     .AxiLiteAddrWidth ( AXI_LITE_AW                    ),
     .AxiLiteDataWidth ( AXI_LITE_DW                    ),
+    .NumCfgRegcp      ( 8                              ),
     .slv_req_t        ( ariane_axi_soc::req_slv_t      ),
     .slv_resp_t       ( ariane_axi_soc::resp_slv_t     ),
     .mst_req_t        ( ariane_axi_soc::req_slv_mem_t  ),
@@ -507,72 +507,71 @@ module host_domain
     .axi_llc_events_o    ( llc_events                                      )
   );
 
-  assign s_llc_read_hit_cache   = llc_events.hit_read_cache.active;
-  assign s_llc_read_miss_cache  = llc_events.miss_read_cache.active;
-  assign s_llc_write_hit_cache  = llc_events.hit_write_cache.active;
+  assign s_llc_read_hit_cache = llc_events.hit_read_cache.active;
+  assign s_llc_read_miss_cache = llc_events.miss_read_cache.active;
+  assign s_llc_write_hit_cache = llc_events.hit_write_cache.active;
   assign s_llc_write_miss_cache = llc_events.miss_write_cache.active;
-  
+   
 `endif   
-    
+     
   cva6_subsystem # (
-    `ifdef PMU_BLOCK
-      .PMU_NUM_COUNTER   ( PMU_NUM_COUNTER  ),
-    `endif
-      .NUM_WORDS         ( NUM_WORDS        ),
-      .InclSimDTM        ( 1'b1             ),
-      .StallRandomOutput ( 1'b1             ),
-      .StallRandomInput  ( 1'b1             ),
-      .JtagEnable        ( JtagEnable       )
+  `ifdef PMU_BLOCK
+    .PMU_NUM_COUNTER ( PMU_NUM_COUNTER  ),
+  `endif    
+    .NUM_WORDS         ( NUM_WORDS        ),
+    .InclSimDTM        ( 1'b1             ),
+    .StallRandomOutput ( 1'b1             ),
+    .StallRandomInput  ( 1'b1             ),
+    .JtagEnable        ( JtagEnable       )
   ) i_cva6_subsystem (
-      .clk_i(s_soc_clk),
-      .rst_ni(s_synch_global_rst),
-      .cva6_clk_i(s_clk_cva6),
-      .cva6_rst_ni(s_rstn_cva6_sync),
-      .rtc_i,
-      .dmi_req_valid,
-      .dmi_req_ready,
-      .dmi_req_bits_addr,
-      .dmi_req_bits_op,
-      .dmi_req_bits_data,
-      .dmi_resp_valid,
-      .dmi_resp_ready,
-      .dmi_resp_bits_resp,
-      .dmi_resp_bits_data,
-      .jtag_TCK,
-      .jtag_TMS,
-      .jtag_TDI,
-      .jtag_TRSTn,
-      .jtag_TDO_data,
-      .jtag_TDO_driven,
-      .sync_rst_ni          ( s_synch_soc_rst      ),
-      .udma_events_i        ( s_udma_events        ),
-      .cluster_eoc_i        ( cluster_eoc_i        ),
-      .c2h_irq_i            ( s_c2h_irq            ),
-      .can_irq_i            ( s_can_irq            ),
-      .cl_dma_pe_evt_i      ( s_dma_pe_evt         ),
-      .dm_rst_o             ( s_dm_rst             ),
-      .l2_axi_master        ( l2_axi_bus           ),
-      .apb_axi_master       ( apb_axi_bus          ),
-      .hyper_axi_master     ( hyper_axi_bus        ),
+    .clk_i(s_soc_clk),
+    .rst_ni(s_synch_global_rst),
+    .cva6_clk_i(s_clk_cva6),
+    .cva6_rst_ni(s_rstn_cva6_sync),
+    .rtc_i,
+    .dmi_req_valid,
+    .dmi_req_ready,
+    .dmi_req_bits_addr,
+    .dmi_req_bits_op,
+    .dmi_req_bits_data,
+    .dmi_resp_valid,
+    .dmi_resp_ready,
+    .dmi_resp_bits_resp,
+    .dmi_resp_bits_data,                      
+    .jtag_TCK,
+    .jtag_TMS,
+    .jtag_TDI,
+    .jtag_TRSTn,
+    .jtag_TDO_data,
+    .jtag_TDO_driven,
+    .sync_rst_ni          ( s_synch_soc_rst      ),
+    .udma_events_i        ( s_udma_events        ),
+    .cluster_eoc_i        ( cluster_eoc_i        ),
+    .c2h_irq_i            ( s_c2h_irq            ),
+    .can_irq_i            ( s_can_irq            ),
+    .cl_dma_pe_evt_i      ( s_dma_pe_evt         ),
+    .dm_rst_o             ( s_dm_rst             ),
+    .l2_axi_master        ( l2_axi_bus           ),
+    .apb_axi_master       ( apb_axi_bus          ),
+    .hyper_axi_master     ( hyper_axi_bus        ),
 
-      .serial_link_to_pad   ( serial_link_to_pad   ),
-      .pad_to_serial_link   ( pad_to_serial_link   ),
-      .serial_linkcfg_reg_master ( serial_linkcfg_reg_master ),   
-      
-      .cluster_axi_master   ( cluster_axi_master   ),
-      .cluster_axi_slave    ( cluster_axi_slave    ),
+    .serial_link_to_pad   ( serial_link_to_pad   ),
+    .pad_to_serial_link   ( pad_to_serial_link   ),
+    .serial_linkcfg_reg_master ( serial_linkcfg_reg_master ),   
+    
+    .cluster_axi_master   ( cluster_axi_master   ),
+    .cluster_axi_slave    ( cluster_axi_slave    ),
 
-      `ifdef PMU_BLOCK
-      .pmu_intr_i           ( pmu_intr_o           ),
-      .axi_lite_slave       ( axi_lite_to_axi_bus  ),
-      `endif
+    `ifdef PMU_BLOCK
+    .pmu_intr_i           ( pmu_intr_o           ),
+    .axi_lite_slave       ( axi_lite_to_axi_bus  ),
+    `endif
 
-      .cva6_uart_rx_i       ( cva6_uart_rx_i       ),
-      .cva6_uart_tx_o       ( cva6_uart_tx_o       ),
-      .axi_lite_master      ( host_lite_bus        )
+    .cva6_uart_rx_i       ( cva6_uart_rx_i       ),
+    .cva6_uart_tx_o       ( cva6_uart_tx_o       ),
+    .axi_lite_master      ( host_lite_bus        )
   );
-  
-  
+   
   axi2tcdm_wrap #(
     .AXI_ID_WIDTH   ( ariane_soc::IdWidthSlave ),
     .AXI_USER_WIDTH ( AXI_USER_WIDTH           ),
@@ -586,19 +585,18 @@ module host_domain
     .busy_o      (                           )
   );
 
-
   l2_subsystem #(
     .NB_L2_BANKS        ( NB_L2_BANKS              ),
-    .L2_BANK_SIZE       ( L2_BANK_SIZE             ),
+    .L2_BANK_SIZE       ( L2_BANK_SIZE             ), 
     .L2_BANK_ADDR_WIDTH ( L2_BANK_ADDR_WIDTH       ),
-    .L2_DATA_WIDTH      ( L2_DATA_WIDTH            )
-    ) i_l2_subsystem   (
+    .L2_DATA_WIDTH      ( L2_DATA_WIDTH            )                   
+  ) i_l2_subsystem   (
     .clk_i                     ( s_soc_clk                 ),
     .rst_ni                    ( s_synch_soc_rst           ),
     .axi_bridge_2_interconnect ( axi_bridge_2_interconnect ),
     .udma_tcdm_channels        ( udma_2_tcdm_channels      )
-    );
-  
+  );
+   
   edge_propagator_rx ep_dma_pe_evt_i (
       .clk_i   ( s_soc_clk               ),
       .rstn_i  ( s_rstn_cluster_sync     ),
@@ -606,22 +604,22 @@ module host_domain
       .ack_o   ( dma_pe_evt_ack_o        ),
       .valid_i ( dma_pe_evt_valid_i      )
   );
-  
+   
   apb_subsystem #(
-      .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
-      .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
-      .AXI_USER_WIDTH ( AXI_USER_WIDTH           ),
-      .NUM_GPIO       ( NUM_GPIO                 ),
-    `ifdef TARGET_SYNTHESIS
-      .InclUART       ( 1'b1                     )
-    `else
-      .InclUART       ( 1'b0                     )
-    `endif
-    ) i_apb_subsystem (
+       .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH        ),
+       .AXI_DATA_WIDTH ( AXI_DATA_WIDTH           ),
+       .AXI_USER_WIDTH ( AXI_USER_WIDTH           ),
+       .NUM_GPIO       ( NUM_GPIO                 ),
+     `ifdef TARGET_SYNTHESIS
+       .InclUART       ( 1'b1                     )
+     `else
+       .InclUART       ( 1'b0                     )
+     `endif
+  ) i_apb_subsystem (
     .clk_i                  ( s_soc_clk                      ),
     .rtc_i                  ( rtc_i                          ),
     .rst_ni                 ( rst_ni                         ),
-    .bypass_clk_i           ( bypass_clk_i                   ),
+    .bypass_clk_i           ( bypass_clk_i                   ),  
     .rst_dm_i               ( s_dm_rst                       ),
     .apb_uart_rx_i          ( apb_uart_rx_i                  ),
     .apb_uart_tx_o          ( apb_uart_tx_o                  ),
@@ -640,9 +638,9 @@ module host_domain
     .llc_write_miss_cache_i ( s_llc_write_miss_cache         ),
                       
     `ifdef XILINX_DDR
-    .hyper_axi_bus_slave    ( dummyaxibus                    ),
+    .hyper_axi_bus_slave    ( dummyaxibus                    ),                 
     `else
-    .hyper_axi_bus_slave    ( mem_axi_bus                    ),
+    .hyper_axi_bus_slave    ( mem_axi_bus                    ),                 
     `endif                        
     .axi_apb_slave          ( apb_axi_bus                    ),
     .udma_tcdm_channels     ( udma_2_tcdm_channels           ),
@@ -680,25 +678,25 @@ module host_domain
 
 
   axi_lite_subsystem #(
-      .AXI_USER_WIDTH      ( AXI_USER_WIDTH    ),
-      .AXI_ADDR_WIDTH      ( AXI_ADDRESS_WIDTH ),
-      .AXI_DATA_WIDTH      ( AXI_DATA_WIDTH    ),
-      .AXI_LITE_ADDR_WIDTH ( AXI_LITE_AW       ),
-      .AXI_LITE_DATA_WIDTH ( AXI_LITE_DW       ) 
+    .AXI_USER_WIDTH      ( AXI_USER_WIDTH    ),
+    .AXI_ADDR_WIDTH      ( AXI_ADDRESS_WIDTH ),
+    .AXI_DATA_WIDTH      ( AXI_DATA_WIDTH    ),
+    .AXI_LITE_ADDR_WIDTH ( AXI_LITE_AW       ),
+    .AXI_LITE_DATA_WIDTH ( AXI_LITE_DW       ) 
   ) i_axi_lite_subsystem (
-      .clk_i                  ( s_soc_clk               ),
-      .rst_ni                 ( rst_ni                  ),
-      .host_axi_lite_slave    ( host_lite_bus           ),
-      .cluster_axi_lite_slave ( cluster_lite_slave      ),
-      .c2h_tlb_cfg_master     ( c2h_tlb_cfg_lite_master ),
-      .llc_cfg_master         ( llc_cfg_bus             ),
+    .clk_i                  ( s_soc_clk               ),
+    .rst_ni                 ( rst_ni                  ),
+    .host_axi_lite_slave    ( host_lite_bus           ),
+    .cluster_axi_lite_slave ( cluster_lite_slave      ),
+    .c2h_tlb_cfg_master     ( c2h_tlb_cfg_lite_master ),
+    .llc_cfg_master         ( llc_cfg_bus             ),
 `ifdef PMU_BLOCK
-      .axi_master             ( axi_lite_to_axi_bus     ),
-      .pmu_cfg_master         ( pmu_cfg_lite_bus        ),
-      .pmu_debug_slave        ( pmu_debug_axi_bus       ),
+    .axi_master             ( axi_lite_to_axi_bus     ),
+    .pmu_cfg_master         ( pmu_cfg_lite_bus        ),
+    .pmu_debug_slave        ( pmu_debug_axi_bus       ),    
 `endif      
-      .h2c_irq_o              ( h2c_irq_o               ),
-      .c2h_irq_o              ( s_c2h_irq               )
+    .h2c_irq_o              ( h2c_irq_o               ),
+    .c2h_irq_o              ( s_c2h_irq               )
   );
-                    
+                      
 endmodule
