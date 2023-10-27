@@ -21,11 +21,11 @@ module axi_lite_subsystem
   import ariane_soc::IdWidthSlave;
   import axi_pkg::*;
 #( 
-  parameter int unsigned AXI_USER_WIDTH = 1,
-  parameter int unsigned AXI_ADDR_WIDTH = 64,
-  parameter int unsigned AXI_DATA_WIDTH = 64,
-  parameter int unsigned AXI_LITE_ADDR_WIDTH = 32,
-  parameter int unsigned AXI_LITE_DATA_WIDTH = 32
+parameter int unsigned AXI_USER_WIDTH = 1,
+parameter int unsigned AXI_ADDR_WIDTH = 64,
+parameter int unsigned AXI_DATA_WIDTH = 64,
+parameter int unsigned AXI_LITE_ADDR_WIDTH = 32,
+parameter int unsigned AXI_LITE_DATA_WIDTH = 32
 ) (
   input logic      clk_i,
   input logic      rst_ni,
@@ -45,37 +45,40 @@ module axi_lite_subsystem
   AXI_LITE.Slave   pmu_debug_slave,
 `endif
 
-    output logic     h2c_irq_o,
-    output logic     c2h_irq_o
+  output logic     h2c_irq_o,
+  output logic     c2h_irq_o
 );
 
-  logic             s_c2h_irq;
+   logic             s_c2h_irq;
    
-  ariane_axi_soc::req_lite_t llc_cfg_req,     
-                             h2c_tlb_cfg_req, 
-                             c2h_tlb_cfg_req, 
-                             host_lite_req,   
-                             cluster_lite_req,                              
-                             h2cmailbox_lite_req,
-                             c2hmailbox_lite_req;                           
-    
-  ariane_axi_soc::resp_lite_t llc_cfg_resp,     
-                              h2c_tlb_cfg_resp, 
-                              c2h_tlb_cfg_resp, 
-                              host_lite_resp,   
-                              cluster_lite_resp,                        
-                              h2cmailbox_lite_resp,
-                              c2hmailbox_lite_resp;
+   ariane_axi_soc::req_lite_t llc_cfg_req,     
+                              h2c_tlb_cfg_req, 
+                              c2h_tlb_cfg_req, 
+                              host_lite_req,   
+                              cluster_lite_req,
+                              h2cmailbox_lite_req,
+                              c2hmailbox_lite_req;
+     
+   ariane_axi_soc::resp_lite_t llc_cfg_resp,     
+                               h2c_tlb_cfg_resp, 
+                               c2h_tlb_cfg_resp, 
+                               host_lite_resp,   
+                               cluster_lite_resp,
+                               h2cmailbox_lite_resp,
+                               c2hmailbox_lite_resp;
 
-  ariane_axi_soc::req_lite_t  pmu_cfg_req,        // Connects to PMU-Slave device.
-                              axi_bus_lite_req,   // Connects to AXI4-Slave device.
-                              pmu_debug_req;      // Comes from PMU-Master device.
+  ariane_axi_soc::req_lite_t  pmu_cfg_req,          // Connects to PMU-Slave device.
+                              axi_bus_lite_req_q,   // Connects to AXI4-Slave device.
+                              axi_bus_lite_req_d,
+                              pmu_debug_req;        // Comes from PMU-Master device.
   ariane_axi_soc::resp_lite_t pmu_cfg_resp,
-                              axi_bus_lite_resp,
+                              axi_bus_lite_resp_q,
+                              axi_bus_lite_resp_d,
                               pmu_debug_resp;
 
   ariane_axi_soc::req_t   axi_bus_req;                                
-  ariane_axi_soc::resp_t  axi_bus_resp;
+  ariane_axi_soc::resp_t  axi_bus_resp;   
+
   AXI_LITE #(
     .AXI_ADDR_WIDTH (AXI_LITE_ADDR_WIDTH),
     .AXI_DATA_WIDTH (AXI_LITE_DATA_WIDTH)
@@ -177,13 +180,13 @@ module axi_lite_subsystem
   `AXI_LITE_ASSIGN_TO_RESP  ( pmu_cfg_resp , pmu_cfg_master )
 
   `AXI_ASSIGN_FROM_REQ      ( axi_master , axi_bus_req  )
-  `AXI_ASSIGN_TO_RESP       ( axi_bus_resp , axi_master )
+  `AXI_ASSIGN_TO_RESP       ( axi_bus_resp , axi_master )  
 
   // Since PMU is already 32-B and has AXI4-Lite Xbar, we do not need
-  // to perform a AXI4 to AX4-Lite. 
+  // to perform a AXI4 to AX4-Lite.
   `AXI_LITE_ASSIGN_TO_REQ    ( pmu_debug_req, pmu_debug_slave   )
   `AXI_LITE_ASSIGN_FROM_RESP ( pmu_debug_slave , pmu_debug_resp )
-`endif 
+`endif
 
   typedef axi_pkg::xbar_rule_32_t tlb_cfg_xbar_rule_t;
 
@@ -192,7 +195,7 @@ module axi_lite_subsystem
     NoSlvPorts:  3,
     NoMstPorts:  6,
     MaxMstTrans: 2,
-    MaxSlvTrans: 4,           // Maximum number of outstanding transactions per write or read
+    MaxSlvTrans: 4,
     FallThrough: 0,
     LatencyMode: axi_pkg::CUT_SLV_AX,
     PipelineStages: 32'd0,
@@ -206,7 +209,7 @@ module axi_lite_subsystem
 
 `ifdef PMU_BLOCK
   localparam tlb_cfg_xbar_rule_t [FromHostTlbCfgXbarCfg.NoAddrRules-1:0]
-      FromHostTlbCfgXbarAddrMap = '{
+    FromHostTlbCfgXbarAddrMap = '{
     '{idx: 32'd5, start_addr: 32'h0000_0000, end_addr: 32'h0000_1000},  // Debug Module
     '{idx: 32'd4, start_addr: 32'h1040_4000, end_addr: 32'h1060_4000},  // PMU Module
     '{idx: 32'd3, start_addr: 32'h1040_3000, end_addr: 32'h1040_4000},
@@ -216,28 +219,32 @@ module axi_lite_subsystem
   };
    
   axi_lite_xbar #(
-     .Cfg                   ( FromHostTlbCfgXbarCfg          ),
-     .aw_chan_t             ( ariane_axi_soc::aw_chan_lite_t ),
-     .w_chan_t              ( ariane_axi_soc::w_chan_lite_t  ),
-     .b_chan_t              ( ariane_axi_soc::b_chan_lite_t  ),
-     .ar_chan_t             ( ariane_axi_soc::ar_chan_lite_t ),
-     .r_chan_t              ( ariane_axi_soc::r_chan_lite_t  ),
-     .axi_req_t             ( ariane_axi_soc::req_lite_t     ),
-     .axi_resp_t            ( ariane_axi_soc::resp_lite_t    ),
-     .rule_t                ( tlb_cfg_xbar_rule_t            )
+    .Cfg                   ( FromHostTlbCfgXbarCfg          ),
+    .aw_chan_t             ( ariane_axi_soc::aw_chan_lite_t ),
+    .w_chan_t              ( ariane_axi_soc::w_chan_lite_t  ),
+    .b_chan_t              ( ariane_axi_soc::b_chan_lite_t  ),
+    .ar_chan_t             ( ariane_axi_soc::ar_chan_lite_t ),
+    .r_chan_t              ( ariane_axi_soc::r_chan_lite_t  ),
+    .axi_req_t             ( ariane_axi_soc::req_lite_t     ),
+    .axi_resp_t            ( ariane_axi_soc::resp_lite_t    ),
+    .rule_t                ( tlb_cfg_xbar_rule_t            )
    ) i_axi_lite_xbar         (
-     .clk_i                 ( clk_i                                               ),
-     .rst_ni                ( rst_ni                                              ),
-     .test_i                ( 1'b0                                                ),
-     .slv_ports_req_i       ( {pmu_debug_req , cluster_lite_req, host_lite_req}    ), 
-     .slv_ports_resp_o      ( {pmu_debug_resp , cluster_lite_resp, host_lite_resp} ), 
-     // To Do: Clean this.
-     .mst_ports_req_o       ( {axi_bus_lite_req, pmu_cfg_req, c2hmailbox_lite_req,  h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}    ),
-     .mst_ports_resp_i      ( {axi_bus_lite_resp, pmu_cfg_resp, c2hmailbox_lite_resp, h2cmailbox_lite_resp, llc_cfg_resp, c2h_tlb_cfg_resp} ),
-     .addr_map_i            ( FromHostTlbCfgXbarAddrMap                           ),
-     .en_default_mst_port_i ( {1'b0, 1'b0}                                        ),
-     .default_mst_port_i    ( '0                                                  )
-   );  
+    .clk_i                 ( clk_i                                               ),
+    .rst_ni                ( rst_ni                                              ),
+    .test_i                ( 1'b0                                                ),
+    .slv_ports_req_i       ( {pmu_debug_req, cluster_lite_req , host_lite_req }  ), 
+    .slv_ports_resp_o      ( {pmu_debug_resp, cluster_lite_resp, host_lite_resp} ), 
+    .mst_ports_req_o       ( {axi_bus_lite_req_d, pmu_cfg_req, c2hmailbox_lite_req, h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}     ),
+    .mst_ports_resp_i      ( {axi_bus_lite_resp_q, pmu_cfg_resp, c2hmailbox_lite_resp, h2cmailbox_lite_resp, llc_cfg_resp, c2h_tlb_cfg_resp} ),
+    .addr_map_i            ( FromHostTlbCfgXbarAddrMap                           ),
+    .en_default_mst_port_i ( {1'b0, 1'b0}                                        ),
+    .default_mst_port_i    ( '0                                                  )
+   );
+
+  always_ff @ (posedge clk_i) begin
+    axi_bus_lite_req_q  <= axi_bus_lite_req_d;
+    axi_bus_lite_resp_q <= axi_bus_lite_resp_d;
+  end
 
    axi_lite_to_axi #(
       .AxiDataWidth ( 32'd64                      ),
@@ -246,18 +253,34 @@ module axi_lite_subsystem
       .axi_req_t    ( ariane_axi_soc::req_t       ),
       .axi_resp_t   ( ariane_axi_soc::resp_t      )
    ) i_axi_lite_to_axi (
-      .slv_req_lite_i   ( axi_bus_lite_req        ),
-      .slv_resp_lite_o  ( axi_bus_lite_resp       ),
+      .slv_req_lite_i   ( axi_bus_lite_req_q      ),
+      .slv_resp_lite_o  ( axi_bus_lite_resp_d     ),
       .slv_aw_cache_i   ( 4'd0                    ),
       .slv_ar_cache_i   ( 4'd0                    ),
       // Master AXI port
       .mst_req_o        ( axi_bus_req             ),
       .mst_resp_i       ( axi_bus_resp            )
-   );
+   );   
 `else
   // Without PMU_BLOCK
+  localparam axi_pkg::xbar_cfg_t FromHostTlbCfgXbarCfg = '{
+    NoSlvPorts:  2,
+    NoMstPorts:  4,
+    MaxMstTrans: 2,
+    MaxSlvTrans: 4,
+    FallThrough: 0,
+    LatencyMode: axi_pkg::CUT_SLV_AX,
+    PipelineStages: 32'd0,
+    AxiIdWidthSlvPorts: 1,
+    AxiIdUsedSlvPorts: 1, 
+    UniqueIds   : 0,
+    AxiAddrWidth: AXI_LITE_ADDR_WIDTH,
+    AxiDataWidth: AXI_LITE_DATA_WIDTH,
+    NoAddrRules: 4
+  };
+
   localparam tlb_cfg_xbar_rule_t [FromHostTlbCfgXbarCfg.NoAddrRules-1:0]
-      FromHostTlbCfgXbarAddrMap = '{
+    FromHostTlbCfgXbarAddrMap = '{
     '{idx: 32'd3, start_addr: 32'h1040_3000, end_addr: 32'h1040_4000},
     '{idx: 32'd2, start_addr: 32'h1040_2000, end_addr: 32'h1040_3000},
     '{idx: 32'd1, start_addr: 32'h1040_1000, end_addr: 32'h1040_2000},
@@ -265,28 +288,29 @@ module axi_lite_subsystem
   };
    
   axi_lite_xbar #(
-     .Cfg                   ( FromHostTlbCfgXbarCfg          ),
-     .aw_chan_t             ( ariane_axi_soc::aw_chan_lite_t ),
-     .w_chan_t              ( ariane_axi_soc::w_chan_lite_t  ),
-     .b_chan_t              ( ariane_axi_soc::b_chan_lite_t  ),
-     .ar_chan_t             ( ariane_axi_soc::ar_chan_lite_t ),
-     .r_chan_t              ( ariane_axi_soc::r_chan_lite_t  ),
-     .axi_req_t             ( ariane_axi_soc::req_lite_t     ),
-     .axi_resp_t            ( ariane_axi_soc::resp_lite_t    ),
-     .rule_t                ( tlb_cfg_xbar_rule_t            )
+    .Cfg                   ( FromHostTlbCfgXbarCfg          ),
+    .aw_chan_t             ( ariane_axi_soc::aw_chan_lite_t ),
+    .w_chan_t              ( ariane_axi_soc::w_chan_lite_t  ),
+    .b_chan_t              ( ariane_axi_soc::b_chan_lite_t  ),
+    .ar_chan_t             ( ariane_axi_soc::ar_chan_lite_t ),
+    .r_chan_t              ( ariane_axi_soc::r_chan_lite_t  ),
+    .axi_req_t             ( ariane_axi_soc::req_lite_t     ),
+    .axi_resp_t            ( ariane_axi_soc::resp_lite_t    ),
+    .rule_t                ( tlb_cfg_xbar_rule_t            )
    ) i_axi_lite_xbar         (
-     .clk_i                 ( clk_i                                               ),
-     .rst_ni                ( rst_ni                                              ),
-     .test_i                ( 1'b0                                                ),
-     .slv_ports_req_i       ( {cluster_lite_req , host_lite_req }                 ), 
-     .slv_ports_resp_o      ( {cluster_lite_resp, host_lite_resp}                 ), 
-     .mst_ports_req_o       ( {c2hmailbox_lite_req,  h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}  ),
-     .mst_ports_resp_i      ( {c2hmailbox_lite_resp, h2cmailbox_lite_resp, llc_cfg_resp, c2h_tlb_cfg_resp} ),
-     .addr_map_i            ( FromHostTlbCfgXbarAddrMap                           ),
-     .en_default_mst_port_i ( {1'b0, 1'b0}                                        ),
-     .default_mst_port_i    ( '0                                                  )
+    .clk_i                 ( clk_i                                               ),
+    .rst_ni                ( rst_ni                                              ),
+    .test_i                ( 1'b0                                                ),
+    .slv_ports_req_i       ( {cluster_lite_req , host_lite_req }                 ), 
+    .slv_ports_resp_o      ( {cluster_lite_resp, host_lite_resp}                 ), 
+    .mst_ports_req_o       ( {c2hmailbox_lite_req,  h2cmailbox_lite_req,  llc_cfg_req,  c2h_tlb_cfg_req}  ),
+    .mst_ports_resp_i      ( {c2hmailbox_lite_resp, h2cmailbox_lite_resp, llc_cfg_resp, c2h_tlb_cfg_resp} ),
+    .addr_map_i            ( FromHostTlbCfgXbarAddrMap                           ),
+    .en_default_mst_port_i ( {1'b0, 1'b0}                                        ),
+    .default_mst_port_i    ( '0                                                  )
    );   
 `endif
+
 
   axi_lite_mailbox #(
      .MailboxDepth ( 32'd8                       ),
