@@ -247,7 +247,7 @@ uint32_t test_pmu_core_bubble_sort (
 
   // Keep polling DSPM and comparing array outputs. 
   // Exit when either the error_count = 0 or when it stabilizes.
-  while (prev_error_count == error_count) {
+  while (prev_error_count != error_count) {
     prev_error_count = error_count;
     error_count = 0;
     read_32b_regs(arr_base, len, ibex_val, 0x4);
