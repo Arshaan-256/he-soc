@@ -696,11 +696,6 @@ module cva6_subsystem
     .ipi_o       ( ipi            )
   );
 
-  initial begin
-    $display("hehe %d", $bits(axi_clint_req));
-  end
-
-
   `AXI_ASSIGN_TO_REQ(axi_clint_req,master[ariane_soc::CLINT])
   `AXI_ASSIGN_FROM_RESP(master[ariane_soc::CLINT],axi_clint_resp)
 
