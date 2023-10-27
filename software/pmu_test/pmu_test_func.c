@@ -464,7 +464,7 @@ uint32_t test_pmu_debug_func (
   
   // For simulation, wait until all cores are up and running.
   // To do: A better way of doing this.
-  uint32_t res = array_traversal(num_counter*150);
+  uint32_t res = array_traversal(num_core*150);
 
   if (DEBUG >= 1)
     printf("Start PMU core! %0d\n", res);
