@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "utils.h"
 #include "pmu_defines.h"
 #include "riscv_encoder_instr.c"
 
@@ -86,11 +83,12 @@ uint32_t test_spm_rand(uint64_t base_addr, uint32_t num_rw);
 // The `test_pmu_core_bubble_sort` function writes the RISC-V assembly program for bubble sort in the ISPM, populate the DSPM with a randomized array of 
 // size `len` and intialize the core.
 void bubble_sort (uint32_t *array, uint32_t len);
-uint32_t test_pmu_core_bubble_sort (uint32_t program_start_addr, 
-                                    uint32_t arr_base,
-                                    uint32_t status_base_addr, 
-                                    uint32_t len, 
-                                    uint32_t DEBUG);
+uint32_t test_pmu_core_bubble_sort (
+              uint32_t program_start_addr, 
+              uint32_t arr_base,
+              uint32_t pmc_status_base_addr, 
+              uint32_t len, 
+              uint32_t DEBUG);
 
 // PMU core writes to counter bundles.
 // The `test_pmu_core_counter_b_writes` function writes multiples of 17 to all the registers in the all the counter bundles in the PMU.
@@ -105,10 +103,28 @@ uint32_t test_pmu_core_bubble_sort (uint32_t program_start_addr,
 // Until then the application core is stuck in a while loop reading this address.
 // Once `target_addr` is updated to 1, the application core reads all the counter bundles 
 // and verifies that the write operations indeed occurred.
-uint32_t test_pmu_core_counter_b_writes (uint32_t program_start_addr, 
-                                         uint32_t counter_b_base_addr,
-                                         uint32_t target_addr,
-                                         uint32_t status_base_addr,  
-                                         uint32_t counter_b_size,
-                                         uint32_t num_counter,
-                                         uint32_t DEBUG);
+uint32_t test_pmu_core_counter_b_writes (
+            uint32_t program_start_addr, 
+            uint32_t counter_b_base_addr,
+            uint32_t target_addr,
+            uint32_t pmc_status_base_addr, 
+            uint32_t counter_b_size,
+            uint32_t num_counter,
+            uint32_t DEBUG);
+
+uint32_t run_pmu_core_test_suite (
+            uint32_t ispm_base_addr, 
+            uint32_t counter_b_base_addr,
+            uint32_t dspm_base_addr,
+            uint32_t pmc_status_base_addr, 
+            uint32_t counter_b_size,
+            uint32_t num_counter,
+            uint32_t arr_len,
+            uint32_t DEBUG);
+
+uint32_t test_pmu_debug_func (
+              uint32_t program_start_addr,
+              uint32_t pmc_status_base_addr, 
+              uint32_t num_core,
+              uint32_t wait_before_resuming,
+              uint32_t DEBUG);            
