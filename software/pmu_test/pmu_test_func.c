@@ -413,7 +413,7 @@ uint32_t test_pmu_core_counter_b_writes (
 uint32_t test_pmu_debug_func (
               uint32_t program_start_addr,
               uint32_t pmc_status_base_addr, 
-              uint32_t num_counter,
+              uint32_t num_core,
               uint32_t wait_before_resuming,
               uint32_t DEBUG) {
 
@@ -448,7 +448,7 @@ uint32_t test_pmu_debug_func (
   uint32_t program_size = sizeof(program) / sizeof(program[0]);
 
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
-  instruction = encodeADDI(1, 0, num_counter & 0xFFF, (DEBUG >= 1));
+  instruction = encodeADDI(1, 0, num_core & 0xFFF, (DEBUG >= 1));
   program[1] = instruction;
   // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
   instruction = encodeADDI(6, 0, wait_before_resuming & 0xFFF, (DEBUG >= 1));
