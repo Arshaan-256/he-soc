@@ -38,10 +38,11 @@
 ///     3. Event Info Configuration Register      BASE_ADDR + 0x8
 ///     4. Initial Budget Register                BASE_ADDR + 0xc
 
-#define NUM_COUNTER 4
+#define NUM_COUNTER 8
 
 #define TIMER_WIDTH     0x8
 #define STATUS_WIDTH    0x4
+#define BOOT_ADDR_WIDTH 0x4
 #define COUNTER_WIDTH   0x4
 
 // PMU Bundle Addresses
@@ -49,8 +50,9 @@
 #define TIMER_ADDR          (PMU_B_BASE_ADDR)
 #define PERIOD_ADDR         (PMU_B_BASE_ADDR + TIMER_WIDTH)
 #define PMC_STATUS_ADDR     (PMU_B_BASE_ADDR + 2*TIMER_WIDTH)
+#define PMC_BOOT_ADDR       (PMU_B_BASE_ADDR + 2*TIMER_WIDTH + STATUS_WIDTH)
 // Two 64-bit (8B) timer and one 32-bit status registers in the PMU bundle.
-#define PMU_BUNDLE_SIZE     2*TIMER_WIDTH + STATUS_WIDTH
+#define PMU_BUNDLE_SIZE     2*TIMER_WIDTH + STATUS_WIDTH + BOOT_ADDR_WIDTH
 
 // Counter Bundle Base Addresses
 #define COUNTER_B_BASE_ADDR     (PMU_B_BASE_ADDR + PMU_BUNDLE_SIZE)
