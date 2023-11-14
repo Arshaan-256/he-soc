@@ -165,7 +165,7 @@ module host_domain
   ariane_axi_soc::req_lite_t  axi_lite_pmu_cfg_req;
   ariane_axi_soc::resp_lite_t axi_lite_pmu_cfg_res;
 
-  localparam int unsigned PMU_NUM_COUNTER        = 4;
+  localparam int unsigned PMU_NUM_COUNTER        = 8;
   localparam int unsigned EVENT_INFO_BITS_LLC_IN = 16;
   logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
 `endif 
@@ -177,8 +177,10 @@ module host_domain
     ariane_axi_soc::addr_t   end_addr;
   } rule_full_t;
 
+  // Cache size = 32 x 128 x 8 x 8 = 256kB.
+  // Each core partition is 64kB.
   localparam LLC_SET_ASSOC  = 32'd32;
-  localparam LLC_NUM_LINES  = 32'd1024;
+  localparam LLC_NUM_LINES  = 32'd128;
   localparam LLC_NUM_BLOCKS = 32'd8;
   
   // localparam LLC_SET_ASSOC  = 32'd32;
@@ -361,10 +363,11 @@ module host_domain
     .e_out              ( spu_llc_out               )
   );
 
+  // The PMU only works with 32-bit AXI4-Lite port.
   pmu_top #(
     .NUM_COUNTER      ( PMU_NUM_COUNTER               ),
-    .AxiLiteAddrWidth ( AXI_LITE_AW                   ),
-    .AxiLiteDataWidth ( AXI_LITE_DW                   ),
+    .DEBUG_START_ADDR ( ariane_soc::DebugBase         ),
+    .DEBUG_LENGTH     ( ariane_soc::DebugLength       ),
     .lite_req_t       ( ariane_axi_soc::req_lite_t    ),
     .lite_resp_t      ( ariane_axi_soc::resp_lite_t   )
   ) i_pmu_top (
