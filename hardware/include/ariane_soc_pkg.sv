@@ -11,10 +11,14 @@
 // Author: Florian Zaruba, ETH Zurich
 // Description: Contains SoC information as constants
 package ariane_soc;
-  // M-Mode Hart, S-Mode Hart for each core (4 cores)
-  localparam int unsigned NumTargets = 2*4;
+  // Have to manually add more cores in cva6_subsystem, 
+  // and in `ariane_soc/axi_masters_t` if this parameter is changed.
+  localparam int unsigned NumCores    = 4;
+
+  // M-Mode Hart, S-Mode Hart for each core
+  localparam int unsigned NumTargets  = 2*NumCores;
   // Uart, SPI, Ethernet, reserved
-  localparam int unsigned NumSources = 255;
+  localparam int unsigned NumSources  = 255;
   localparam int unsigned MaxPriority = 7;
 
   // actually masters, but slaves on the crossbar 
@@ -29,10 +33,10 @@ package ariane_soc;
   // // Slave 7: AXI4-Lite
 
   typedef enum int unsigned {
-    Hart_3         = 7,
-    Hart_2         = 6,
-    Hart_1         = 5,
-    Hart_0         = 4,
+    Core_3         = 7,
+    Core_2         = 6,
+    Core_1         = 5,
+    Core_0         = 4,
     AXI4_Lite      = 3,
     Cluster_Master = 2,
     Serial_Link    = 1,
@@ -165,5 +169,21 @@ package ariane_soc;
     logic         ddr2_o;
     logic         ddr3_o;
   } ser_link_to_pad;
+
+  // AXI LLC
+  // Cache size = 32 x 128 x 8 x 8 = 256kB.
+  // Each core partition is 64kB.
+  localparam LLC_SET_ASSOC  = 32'd32;
+  localparam LLC_NUM_LINES  = 32'd128;
+  localparam LLC_NUM_BLOCKS = 32'd8;
+
+  // PMU Defines
+  typedef enum int unsigned {
+    SPU_Core_3 = 4,
+    SPU_Core_2 = 3,
+    SPU_Core_1 = 2,
+    SPU_Core_0 = 1,
+    SPU_Memory = 0
+  } spu_masters_t;
 
 endpackage
