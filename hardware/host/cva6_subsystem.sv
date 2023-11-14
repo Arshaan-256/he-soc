@@ -69,8 +69,14 @@ module cva6_subsystem
   output logic             jtag_TDO_driven,
 
   `ifdef PMU_BLOCK
+  // PMU_INTF
+  output pmu_pkg::pmu_event_t spu_core_0_out,
+  output pmu_pkg::pmu_event_t spu_core_1_out,
+  output pmu_pkg::pmu_event_t spu_core_2_out,
+  output pmu_pkg::pmu_event_t spu_core_3_out,
   // From AXI4-Lite Bar
-  AXI_BUS.Slave            axi_lite_slave,
+  AXI_BUS.Slave               axi_lite_slave,
+  // PMU Interrupt Signal
   input  logic [PMU_NUM_COUNTER-1:0]  pmu_intr_i,
   `endif
 
@@ -158,6 +164,13 @@ module cva6_subsystem
     .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
     .AXI_USER_WIDTH ( AXI_USER_WIDTH      )
   ) slave[ariane_soc::NrSlaves-1:0]();
+
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
+    .AXI_DATA_WIDTH ( AXI_DATA_WIDTH      ),
+    .AXI_ID_WIDTH   ( ariane_soc::IdWidth ),
+    .AXI_USER_WIDTH ( AXI_USER_WIDTH      )
+  ) slave_to_spu[ariane_soc::NumCores-1:0]();
  
   AXI_BUS #(
     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH   ),
@@ -696,11 +709,6 @@ module cva6_subsystem
     .ipi_o       ( ipi            )
   );
 
-  initial begin
-    $display("hehe %d", $bits(axi_clint_req));
-  end
-
-
   `AXI_ASSIGN_TO_REQ(axi_clint_req,master[ariane_soc::CLINT])
   `AXI_ASSIGN_FROM_RESP(master[ariane_soc::CLINT],axi_clint_resp)
 
@@ -859,6 +867,92 @@ module cva6_subsystem
     .mdc             ( )
   );
 
+  // --------------------
+  // SPUs on cores output
+  // --------------------
+  spu_top #(
+    // Static configuration parameters of the cache.
+    .SetAssociativity   ( ariane_soc::LLC_SET_ASSOC   ),
+    .NumLines           ( ariane_soc::LLC_NUM_LINES   ),
+    .NumBlocks          ( ariane_soc::LLC_NUM_BLOCKS  ),
+    // AXI4 Specifications
+    .IdWidthMasters     ( ariane_soc::IdWidth         ),
+    .IdWidthSlaves      ( ariane_soc::IdWidthSlave+ 1 ),
+    .AddrWidth          ( AXI_ADDRESS_WIDTH           ),
+    .DataWidth          ( AXI_DATA_WIDTH              ),
+    // FIFO and CAM Parameters
+    .CAM_DEPTH          (  3                          ),
+    .FIFO_DEPTH         (  3                          )
+  ) i_spu_core_0_llc (
+    .clk_i              ( clk_i                       ),
+    .rst_ni             ( rst_ni                      ),
+    .spu_slv            ( slave_to_spu[ariane_soc::Core_0-4] ),
+    .spu_mst            ( slave[ariane_soc::Core_0]   ),
+    .e_out              ( spu_core_0_out              )
+  );
+
+  spu_top #(
+    // Static configuration parameters of the cache.
+    .SetAssociativity   ( ariane_soc::LLC_SET_ASSOC   ),
+    .NumLines           ( ariane_soc::LLC_NUM_LINES   ),
+    .NumBlocks          ( ariane_soc::LLC_NUM_BLOCKS  ),
+    // AXI4 Specifications
+    .IdWidthMasters     ( ariane_soc::IdWidth         ),
+    .IdWidthSlaves      ( ariane_soc::IdWidthSlave+ 1 ),
+    .AddrWidth          ( AXI_ADDRESS_WIDTH           ),
+    .DataWidth          ( AXI_DATA_WIDTH              ),
+    // FIFO and CAM Parameters
+    .CAM_DEPTH          (  3                          ),
+    .FIFO_DEPTH         (  3                          )
+  ) i_spu_core_1_llc (
+    .clk_i              ( clk_i                       ),
+    .rst_ni             ( rst_ni                      ),
+    .spu_slv            ( slave_to_spu[ariane_soc::Core_1-4] ),
+    .spu_mst            ( slave[ariane_soc::Core_1]   ),
+    .e_out              ( spu_core_1_out              )
+  );
+
+  spu_top #(
+    // Static configuration parameters of the cache.
+    .SetAssociativity   ( ariane_soc::LLC_SET_ASSOC   ),
+    .NumLines           ( ariane_soc::LLC_NUM_LINES   ),
+    .NumBlocks          ( ariane_soc::LLC_NUM_BLOCKS  ),
+    // AXI4 Specifications
+    .IdWidthMasters     ( ariane_soc::IdWidth         ),
+    .IdWidthSlaves      ( ariane_soc::IdWidthSlave+ 1 ),
+    .AddrWidth          ( AXI_ADDRESS_WIDTH           ),
+    .DataWidth          ( AXI_DATA_WIDTH              ),
+    // FIFO and CAM Parameters
+    .CAM_DEPTH          (  3                          ),
+    .FIFO_DEPTH         (  3                          )
+  ) i_spu_core_2_llc (
+    .clk_i              ( clk_i                       ),
+    .rst_ni             ( rst_ni                      ),
+    .spu_slv            ( slave_to_spu[ariane_soc::Core_2-4] ),
+    .spu_mst            ( slave[ariane_soc::Core_2]   ),
+    .e_out              ( spu_core_2_out              )
+  );
+
+  spu_top #(
+    // Static configuration parameters of the cache.
+    .SetAssociativity   ( ariane_soc::LLC_SET_ASSOC   ),
+    .NumLines           ( ariane_soc::LLC_NUM_LINES   ),
+    .NumBlocks          ( ariane_soc::LLC_NUM_BLOCKS  ),
+    // AXI4 Specifications
+    .IdWidthMasters     ( ariane_soc::IdWidth         ),
+    .IdWidthSlaves      ( ariane_soc::IdWidthSlave+ 1 ),
+    .AddrWidth          ( AXI_ADDRESS_WIDTH           ),
+    .DataWidth          ( AXI_DATA_WIDTH              ),
+    // FIFO and CAM Parameters
+    .CAM_DEPTH          (  3                          ),
+    .FIFO_DEPTH         (  3                          )
+  ) i_spu_core_3_llc (
+    .clk_i              ( clk_i                       ),
+    .rst_ni             ( rst_ni                      ),
+    .spu_slv            ( slave_to_spu[ariane_soc::Core_3-4] ),
+    .spu_mst            ( slave[ariane_soc::Core_3]   ),
+    .e_out              ( spu_core_3_out              )
+  );
   // ---------------
   // Core #0
   // ---------------
@@ -901,7 +995,11 @@ module cva6_subsystem
     .src            ( cva6_axi_master_dst_0     ),
     .dst_clk_i      ( clk_i                     ),
     .dst_rst_ni     ( ndmreset_n                ),
-    .dst            ( slave[ariane_soc::Hart_0]  )
+  `ifdef PMU_BLOCK
+    .dst            ( slave_to_spu[ariane_soc::Core_0-4] )
+  `else
+    .dst            ( slave[ariane_soc::Core_0] )
+  `endif
   );
 
   // ---------------
@@ -946,7 +1044,11 @@ module cva6_subsystem
     .src            ( cva6_axi_master_dst_1     ),
     .dst_clk_i      ( clk_i                     ),
     .dst_rst_ni     ( ndmreset_n                ),
-    .dst            ( slave[ariane_soc::Hart_1]  )
+  `ifdef PMU_BLOCK
+    .dst            ( slave_to_spu[ariane_soc::Core_1-4] )
+  `else
+    .dst            ( slave[ariane_soc::Core_1] )
+  `endif
   );
 
   // ---------------
@@ -991,7 +1093,11 @@ module cva6_subsystem
     .src            ( cva6_axi_master_dst_2     ),
     .dst_clk_i      ( clk_i                     ),
     .dst_rst_ni     ( ndmreset_n                ),
-    .dst            ( slave[ariane_soc::Hart_2]  )
+  `ifdef PMU_BLOCK
+    .dst            ( slave_to_spu[ariane_soc::Core_2-4] )
+  `else
+    .dst            ( slave[ariane_soc::Core_2] )
+  `endif
   );
 
   // // ---------------
@@ -1036,7 +1142,11 @@ module cva6_subsystem
     .src            ( cva6_axi_master_dst_3     ),
     .dst_clk_i      ( clk_i                     ),
     .dst_rst_ni     ( ndmreset_n                ),
-    .dst            ( slave[ariane_soc::Hart_3]  )
+  `ifdef PMU_BLOCK
+    .dst            ( slave_to_spu[ariane_soc::Core_3-4] )
+  `else
+    .dst            ( slave[ariane_soc::Core_3] )
+  `endif
   );
    
 endmodule
