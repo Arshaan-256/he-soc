@@ -165,8 +165,8 @@ module host_domain
   ariane_axi_soc::req_lite_t  axi_lite_pmu_cfg_req;
   ariane_axi_soc::resp_lite_t axi_lite_pmu_cfg_res;
 
-  localparam int unsigned PMU_NUM_COUNTER        = 8;
-  localparam int unsigned EVENT_INFO_BITS_LLC_IN = 16;
+  localparam int unsigned PMU_NUM_COUNTER = 12;
+  
   logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
 `endif 
    
@@ -176,16 +176,6 @@ module host_domain
     ariane_axi_soc::addr_t   start_addr;
     ariane_axi_soc::addr_t   end_addr;
   } rule_full_t;
-
-  // Cache size = 32 x 128 x 8 x 8 = 256kB.
-  // Each core partition is 64kB.
-  localparam LLC_SET_ASSOC  = 32'd32;
-  localparam LLC_NUM_LINES  = 32'd128;
-  localparam LLC_NUM_BLOCKS = 32'd8;
-  
-  // localparam LLC_SET_ASSOC  = 32'd32;
-  // localparam LLC_NUM_LINES  = 32'd1024;
-  // localparam LLC_NUM_BLOCKS = 32'd8;
 
   // When changing these parameters, change the L2 size accordingly in ariane_soc_pkg
   localparam NB_L2_BANKS = 8;
@@ -309,58 +299,29 @@ module host_domain
   
   // For size in Bytes, 11-bits are enough (8 for AXI_LENGTH and 3 for AXI_SIZE).
   // For size in cachelines, 6-bits are enough.
-  PMU_INTF #(
-    .EVENT_INFO_BITS    ( EVENT_INFO_BITS_LLC_IN    )
-  ) spu_llc_in ();
 
-  PMU_INTF #(
-    .EVENT_INFO_BITS    ( EVENT_INFO_BITS_LLC_IN    )
-  ) spu_llc_out ();
+  pmu_pkg::pmu_event_t [ariane_soc::NumCores:0] spu_out;
+  // PMU_INTF spu_llc_out ();
 
   spu_top #(
     // Static configuration parameters of the cache.
-    .SetAssociativity   ( LLC_SET_ASSOC             ),
-    .NumLines           ( LLC_NUM_LINES             ),
-    .NumBlocks          ( LLC_NUM_BLOCKS            ),
+    .SetAssociativity   ( ariane_soc::LLC_SET_ASSOC   ),
+    .NumLines           ( ariane_soc::LLC_NUM_LINES   ),
+    .NumBlocks          ( ariane_soc::LLC_NUM_BLOCKS  ),
     // AXI4 Specifications
-    .IdWidthMasters     ( ariane_soc::IdWidth       ),
-    .IdWidthSlaves      ( ariane_soc::IdWidthSlave  ),
-    .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
-    .DataWidth          ( AXI_DATA_WIDTH            ),
-    
-    .EVENT_INFO_BITS    ( EVENT_INFO_BITS_LLC_IN    ),
-
-    .CAM_DEPTH          ( 17                        ),
-    .FIFO_DEPTH         (  8                        )
-  ) spu_cpu_llc (
-    .clk_i              ( s_soc_clk                 ),
-    .rst_ni             ( s_synch_soc_rst           ),
-    .spu_slv            ( hyper_axi_bus             ),
-    .spu_mst            ( hyper_axi_spu_o_bus       ),
-    .e_out              ( spu_llc_in                )
-  );
-
-  spu_top #(
-    // Static configuration parameters of the cache.
-    .SetAssociativity   ( LLC_SET_ASSOC             ),
-    .NumLines           ( LLC_NUM_LINES             ),
-    .NumBlocks          ( LLC_NUM_BLOCKS            ),
-    // AXI4 Specifications
-    .IdWidthMasters     ( ariane_soc::IdWidth       ),
-    .IdWidthSlaves      ( ariane_soc::IdWidthSlave+1),
-    .AddrWidth          ( AXI_ADDRESS_WIDTH         ),
-    .DataWidth          ( AXI_DATA_WIDTH            ),
-    
-    .EVENT_INFO_BITS    ( EVENT_INFO_BITS_LLC_IN    ),
-
-    .CAM_DEPTH          ( 17                        ),
-    .FIFO_DEPTH         (  8                        )
-  ) spu_llc_mem (
-    .clk_i              ( s_soc_clk                 ),
-    .rst_ni             ( s_synch_soc_rst           ),
-    .spu_slv            ( mem_axi_bus_spu_o_bus     ),
-    .spu_mst            ( mem_axi_bus               ),
-    .e_out              ( spu_llc_out               )
+    .IdWidthMasters     ( ariane_soc::IdWidth         ),
+    .IdWidthSlaves      ( ariane_soc::IdWidthSlave+ 1 ),
+    .AddrWidth          ( AXI_ADDRESS_WIDTH           ),
+    .DataWidth          ( AXI_DATA_WIDTH              ),
+    // FIFO and CAM Parameters
+    .CAM_DEPTH          ( 17                          ),
+    .FIFO_DEPTH         (  8                          )
+  ) i_spu_llc_mem (
+    .clk_i              ( s_soc_clk                   ),
+    .rst_ni             ( s_synch_soc_rst             ),
+    .spu_slv            ( mem_axi_bus_spu_o_bus       ),
+    .spu_mst            ( mem_axi_bus                 ),
+    .e_out              ( spu_out[ariane_soc::SPU_Memory] )
   );
 
   // The PMU only works with 32-bit AXI4-Lite port.
@@ -373,8 +334,7 @@ module host_domain
   ) i_pmu_top (
     .clk_i            ( s_soc_clk                     ),
     .rst_ni           ( s_synch_soc_rst               ),
-    .port_1_i         ( spu_llc_in                    ),
-    .port_2_i         ( spu_llc_out                   ),
+    .port_i           ( spu_out                       ),
     .conf_req_i       ( axi_lite_pmu_cfg_req          ),
     .conf_resp_o      ( axi_lite_pmu_cfg_res          ),
     .debug_req_o      ( pmu_debug_req                 ),
@@ -461,17 +421,16 @@ module host_domain
 
 `else
 
-`ifdef PMU_BLOCK
   // Converts AXI BUS signals to request packets.
-  `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_spu_o_bus )
-  `AXI_ASSIGN_FROM_RESP( hyper_axi_spu_o_bus, axi_cpu_res )
+  //     ASSIGN            DST            SRC
+  `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_bus )
+  `AXI_ASSIGN_FROM_RESP( hyper_axi_bus, axi_cpu_res )
+
+`ifdef PMU_BLOCK
   // Converts request packets to AXI Bus signals.
   `AXI_ASSIGN_FROM_REQ( mem_axi_bus_spu_o_bus, axi_mem_req )
   `AXI_ASSIGN_TO_RESP( axi_mem_res, mem_axi_bus_spu_o_bus )
 `else
-  // Converts AXI BUS signals to request packets.
-  `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_bus )
-  `AXI_ASSIGN_FROM_RESP( hyper_axi_bus, axi_cpu_res )
   // Converts request packets to AXI Bus signals.
   `AXI_ASSIGN_FROM_REQ( mem_axi_bus, axi_mem_req )
   `AXI_ASSIGN_TO_RESP( axi_mem_res, mem_axi_bus )
@@ -570,7 +529,14 @@ module host_domain
     .cluster_axi_slave    ( cluster_axi_slave    ),
 
     `ifdef PMU_BLOCK
+    // PMU_INTF
+    .spu_core_0_out       ( spu_out[ariane_soc::SPU_Core_0] ),
+    .spu_core_1_out       ( spu_out[ariane_soc::SPU_Core_1] ),
+    .spu_core_2_out       ( spu_out[ariane_soc::SPU_Core_2] ),
+    .spu_core_3_out       ( spu_out[ariane_soc::SPU_Core_3] ),
+    // From AXI4-Lite Bar
     .pmu_intr_i           ( pmu_intr_o           ),
+    // PMU Interrupt Signal
     .axi_lite_slave       ( axi_lite_to_axi_bus  ),
     `endif
 
