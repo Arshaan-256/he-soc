@@ -67,29 +67,64 @@
 #define ISPM_BASE_ADDR  0x10405000
 #define DSPM_BASE_ADDR  0x10406000
 
-// PMU Event Defines
-#define RD_REQ_MEMORY   0x1F001F
+/// **********************************************************************
+/// PMU Event Defines for Event Selection Register
+/// **********************************************************************
+/// Defines for Core to/from LLC
+/// ****************************
+// Read requests from Core X to LLC
 #define RD_REQ_CORE_0   0x2F001F
 #define RD_REQ_CORE_1   0x3F001F
 #define RD_REQ_CORE_2   0x4F001F
 #define RD_REQ_CORE_3   0x5F001F
-
-#define RD_RES_MEMORY   0x1F003F
+// Read responses to Core X from LLC
 #define RD_RES_CORE_0   0x2F003F
 #define RD_RES_CORE_1   0x3F003F
 #define RD_RES_CORE_2   0x4F003F
 #define RD_RES_CORE_3   0x5F003F
-
-#define WR_REQ_MEMORY   0x1F002F
+// Write requests from Core X to LLC
 #define WR_REQ_CORE_0   0x2F002F
 #define WR_REQ_CORE_1   0x3F002F
 #define WR_REQ_CORE_2   0x4F002F
 #define WR_REQ_CORE_3   0x5F002F
-
-#define WR_RES_MEMORY   0x1F004F
+// Write responses to Core X from LLC
 #define WR_RES_CORE_0   0x2F004F
 #define WR_RES_CORE_1   0x3F004F
 #define WR_RES_CORE_2   0x4F004F
 #define WR_RES_CORE_3   0x5F004F
 
+/// ***********************************
+/// Defines for LLC to/from Main Memory
+/// ***********************************
+// Read and write requests of all cores to Main Memory from LLC
+#define RD_REQ_MEMORY   0x1F001F  
+#define WR_REQ_MEMORY   0x1F002F
+// Read and write responses of all cores to LLC from Main Memory
+#define RD_RES_MEMORY   0x1F003F  
+#define WR_RES_MEMORY   0x1F004F
+
+// Read and write requests of Core X to Main Memory from LLC
+#define RD_REQ_MEMORY_FROM_CORE_0  0x1F4F1F
+#define RD_REQ_MEMORY_FROM_CORE_1  0x1F5F1F
+#define RD_REQ_MEMORY_FROM_CORE_2  0x1F6F1F
+#define RD_REQ_MEMORY_FROM_CORE_3  0x1F7F1F
+#define WR_REQ_MEMORY_FROM_CORE_0  0x1F4F2F
+#define WR_REQ_MEMORY_FROM_CORE_1  0x1F5F2F
+#define WR_REQ_MEMORY_FROM_CORE_2  0x1F6F2F
+#define WR_REQ_MEMORY_FROM_CORE_3  0x1F7F2F
+// Read and write responses of Core X to LLC from Main Memory
+#define RD_RES_MEMORY_FROM_CORE_0  0x1F4F3F
+#define RD_RES_MEMORY_FROM_CORE_1  0x1F5F3F
+#define RD_RES_MEMORY_FROM_CORE_2  0x1F6F3F
+#define RD_RES_MEMORY_FROM_CORE_3  0x1F7F3F
+#define WR_RES_MEMORY_FROM_CORE_0  0x1F4F4F
+#define WR_RES_MEMORY_FROM_CORE_1  0x1F5F4F
+#define WR_RES_MEMORY_FROM_CORE_2  0x1F6F4F
+#define WR_RES_MEMORY_FROM_CORE_3  0x1F7F4F
+
+/// **********************************************************************
+/// Defines for Event Info Register
+/// **********************************************************************
+/// Note: The following define only works if the response (X_RES_X) events are selected
+//        using the corresponding Event Select Register.
 #define ADD_RESP_LAT    0x8001E0
