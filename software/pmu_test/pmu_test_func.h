@@ -90,6 +90,13 @@ uint32_t test_pmu_core_bubble_sort (
               uint32_t len, 
               uint32_t DEBUG);
 
+uint32_t pmu_core_send_interrupt (
+            uint32_t program_start_addr, 
+            uint32_t counter_addr,
+            uint32_t target_addr,
+            uint32_t pmc_status_base_addr, 
+            uint32_t DEBUG);              
+
 // PMU core writes to counter bundles.
 // The `test_pmu_core_counter_b_writes` function writes multiples of 17 to all the registers in the all the counter bundles in the PMU.
 // The base address of the first counter bundle is provided through `counter_b_base_addr`.
