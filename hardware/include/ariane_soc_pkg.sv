@@ -174,7 +174,7 @@ package ariane_soc;
   // Cache size = 32 x 128 x 8 x 8 = 256kB.
   // Each core partition is 64kB.
   localparam LLC_SET_ASSOC  = 32'd32;
-  localparam LLC_NUM_LINES  = 32'd128;
+  localparam LLC_NUM_LINES  = 32'd1024;
   localparam LLC_NUM_BLOCKS = 32'd8;
 
   // PMU Defines
