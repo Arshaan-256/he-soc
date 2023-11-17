@@ -165,7 +165,7 @@ module host_domain
   ariane_axi_soc::req_lite_t  axi_lite_pmu_cfg_req;
   ariane_axi_soc::resp_lite_t axi_lite_pmu_cfg_res;
 
-  localparam int unsigned PMU_NUM_COUNTER = 12;
+  localparam int unsigned PMU_NUM_COUNTER = 32;
   
   logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
 `endif 
