@@ -179,11 +179,8 @@ package ariane_soc;
 
   // PMU Defines
   typedef enum int unsigned {
-    SPU_Core_3 = 4,
-    SPU_Core_2 = 3,
-    SPU_Core_1 = 2,
-    SPU_Core_0 = 1,
-    SPU_Memory = 0
+    SPU_LLC_Out = 1,
+    SPU_LLC_In  = 0
   } spu_masters_t;
 
 endpackage
