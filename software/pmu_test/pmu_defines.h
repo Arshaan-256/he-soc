@@ -47,12 +47,12 @@
 
 // PMU Bundle Addresses
 #define PMU_B_BASE_ADDR     0x10404000
-#define TIMER_ADDR          (PMU_B_BASE_ADDR)
-#define PERIOD_ADDR         (PMU_B_BASE_ADDR + TIMER_WIDTH)
-#define PMC_STATUS_ADDR     (PMU_B_BASE_ADDR + 2*TIMER_WIDTH)
-#define PMC_BOOT_ADDR       (PMU_B_BASE_ADDR + 2*TIMER_WIDTH + STATUS_WIDTH)
+#define TIMER_ADDR          0x10404000
+#define PERIOD_ADDR         0x10404008
+#define PMC_STATUS_ADDR     0x10405000
+#define PMC_BOOT_ADDR       0x10405004
 // Two 64-bit (8B) timer and one 32-bit status registers in the PMU bundle.
-#define PMU_BUNDLE_SIZE     2*TIMER_WIDTH + STATUS_WIDTH + BOOT_ADDR_WIDTH
+#define PMU_BUNDLE_SIZE     0x2000
 
 // Counter Bundle Base Addresses
 #define COUNTER_B_BASE_ADDR     (PMU_B_BASE_ADDR + PMU_BUNDLE_SIZE)
@@ -61,11 +61,11 @@
 #define EVENT_INFO_BASE_ADDR    (COUNTER_B_BASE_ADDR + 2*COUNTER_WIDTH)
 #define INIT_BUDGET_BASE_ADDR   (COUNTER_B_BASE_ADDR + 3*COUNTER_WIDTH)
 // Four 32-bit (4B) registers in one counter bundle.
-#define COUNTER_BUNDLE_SIZE     16
+#define COUNTER_BUNDLE_SIZE     0x1000
 
 // PMU Core Addresses
-#define ISPM_BASE_ADDR  0x10405000
-#define DSPM_BASE_ADDR  0x10406000
+#define ISPM_BASE_ADDR  0x10426000
+#define DSPM_BASE_ADDR  0x10427000
 
 /// **********************************************************************
 /// PMU Event Defines for Event Selection Register
@@ -73,54 +73,57 @@
 /// Defines for Core to/from LLC
 /// ****************************
 // Read requests from Core X to LLC
-#define RD_REQ_CORE_0   0x2F001F
-#define RD_REQ_CORE_1   0x3F001F
-#define RD_REQ_CORE_2   0x4F001F
-#define RD_REQ_CORE_3   0x5F001F
+#define LLC_RD_REQ          0x1F001F
+#define LLC_RD_REQ_CORE_0   0x1F4F1F
+#define LLC_RD_REQ_CORE_1   0x1F5F1F
+#define LLC_RD_REQ_CORE_2   0x1F6F1F
+#define LLC_RD_REQ_CORE_3   0x1F7F1F
 // Read responses to Core X from LLC
-#define RD_RES_CORE_0   0x2F003F
-#define RD_RES_CORE_1   0x3F003F
-#define RD_RES_CORE_2   0x4F003F
-#define RD_RES_CORE_3   0x5F003F
+#define LLC_RD_RES          0x1F003F
+#define LLC_RD_RES_CORE_0   0x1F4F3F
+#define LLC_RD_RES_CORE_1   0x1F5F3F
+#define LLC_RD_RES_CORE_2   0x1F6F3F
+#define LLC_RD_RES_CORE_3   0x1F7F3F
 // Write requests from Core X to LLC
-#define WR_REQ_CORE_0   0x2F002F
-#define WR_REQ_CORE_1   0x3F002F
-#define WR_REQ_CORE_2   0x4F002F
-#define WR_REQ_CORE_3   0x5F002F
+#define LLC_WR_REQ          0x1F002F
+#define LLC_WR_REQ_CORE_0   0x1F4F2F
+#define LLC_WR_REQ_CORE_1   0x1F5F2F
+#define LLC_WR_REQ_CORE_2   0x1F6F2F
+#define LLC_WR_REQ_CORE_3   0x1F7F2F
 // Write responses to Core X from LLC
-#define WR_RES_CORE_0   0x2F004F
-#define WR_RES_CORE_1   0x3F004F
-#define WR_RES_CORE_2   0x4F004F
-#define WR_RES_CORE_3   0x5F004F
+#define LLC_RD_RES          0x1F004F
+#define LLC_WR_RES_CORE_0   0x1F4F4F
+#define LLC_WR_RES_CORE_1   0x1F5F4F
+#define LLC_WR_RES_CORE_2   0x1F6F4F
+#define LLC_WR_RES_CORE_3   0x1F7F4F
 
 /// ***********************************
 /// Defines for LLC to/from Main Memory
 /// ***********************************
-// Read and write requests of all cores to Main Memory from LLC
-#define RD_REQ_MEMORY   0x1F001F  
-#define WR_REQ_MEMORY   0x1F002F
-// Read and write responses of all cores to LLC from Main Memory
-#define RD_RES_MEMORY   0x1F003F  
-#define WR_RES_MEMORY   0x1F004F
-
-// Read and write requests of Core X to Main Memory from LLC
-#define RD_REQ_MEMORY_FROM_CORE_0  0x1F4F1F
-#define RD_REQ_MEMORY_FROM_CORE_1  0x1F5F1F
-#define RD_REQ_MEMORY_FROM_CORE_2  0x1F6F1F
-#define RD_REQ_MEMORY_FROM_CORE_3  0x1F7F1F
-#define WR_REQ_MEMORY_FROM_CORE_0  0x1F4F2F
-#define WR_REQ_MEMORY_FROM_CORE_1  0x1F5F2F
-#define WR_REQ_MEMORY_FROM_CORE_2  0x1F6F2F
-#define WR_REQ_MEMORY_FROM_CORE_3  0x1F7F2F
-// Read and write responses of Core X to LLC from Main Memory
-#define RD_RES_MEMORY_FROM_CORE_0  0x1F4F3F
-#define RD_RES_MEMORY_FROM_CORE_1  0x1F5F3F
-#define RD_RES_MEMORY_FROM_CORE_2  0x1F6F3F
-#define RD_RES_MEMORY_FROM_CORE_3  0x1F7F3F
-#define WR_RES_MEMORY_FROM_CORE_0  0x1F4F4F
-#define WR_RES_MEMORY_FROM_CORE_1  0x1F5F4F
-#define WR_RES_MEMORY_FROM_CORE_2  0x1F6F4F
-#define WR_RES_MEMORY_FROM_CORE_3  0x1F7F4F
+// Read requests from Core X to MEM
+#define MEM_RD_REQ          0x2F001F
+#define MEM_RD_REQ_CORE_0   0x2F4F1F
+#define MEM_RD_REQ_CORE_1   0x2F5F1F
+#define MEM_RD_REQ_CORE_2   0x2F6F1F
+#define MEM_RD_REQ_CORE_3   0x2F7F1F
+// Read responses to Core X from MEM
+#define MEM_RD_RES          0x2F003F
+#define MEM_RD_RES_CORE_0   0x2F4F3F
+#define MEM_RD_RES_CORE_1   0x2F5F3F
+#define MEM_RD_RES_CORE_2   0x2F6F3F
+#define MEM_RD_RES_CORE_3   0x2F7F3F
+// Write requests from Core X to MEM
+#define MEM_WR_REQ          0x2F002F
+#define MEM_WR_REQ_CORE_0   0x2F4F2F
+#define MEM_WR_REQ_CORE_1   0x2F5F2F
+#define MEM_WR_REQ_CORE_2   0x2F6F2F
+#define MEM_WR_REQ_CORE_3   0x2F7F2F
+// Write responses to Core X from MEM
+#define MEM_WR_RES          0x2F004F
+#define MEM_WR_RES_CORE_0   0x2F4F4F
+#define MEM_WR_RES_CORE_1   0x2F5F4F
+#define MEM_WR_RES_CORE_2   0x2F6F4F
+#define MEM_WR_RES_CORE_3   0x2F7F4F
 
 /// **********************************************************************
 /// Defines for Event Info Register
