@@ -5,7 +5,7 @@ package:
     - "Luca Valente"
 
 dependencies:
-  axi_riscv_atomics: { path: "deps/axi_riscv_atomics" }
+  axi_riscv_atomics: { git: "git@github.com:pulp-platform/axi_riscv_atomics.git", version: "0.7.0" }
   clint: { path: "deps/clint" }
   rv_plic: { path: "deps/rv_plic" }
   util: { path: "deps/util" }
