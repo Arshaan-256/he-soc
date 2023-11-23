@@ -301,7 +301,6 @@ module host_domain
   // For size in cachelines, 6-bits are enough.
 
   pmu_pkg::pmu_event_t [ariane_soc::NumCores:0] spu_out;
-  // PMU_INTF spu_llc_out ();
 
   spu_top #(
     // Static configuration parameters of the cache.

@@ -100,7 +100,7 @@ module ariane_peripherals
 `ifdef PMU_BLOCK
     assign irq_sources[142+PMU_NUM_COUNTER-1:142]                     = pmu_intr_i;
     assign irq_sources[ariane_soc::NumSources-1:142+PMU_NUM_COUNTER]  = '0;
-    assign irq_le[142+PMU_NUM_COUNTER-1:142]	                        = {PMU_NUM_COUNTER{1'b1}};
+    assign irq_le[142+PMU_NUM_COUNTER-1:142]	                      = {PMU_NUM_COUNTER{1'b1}};
     assign irq_le[ariane_soc::NumSources-1:142+PMU_NUM_COUNTER]       = '0; 
 `else
     assign irq_sources[ariane_soc::NumSources-1:142]                  = '0;
