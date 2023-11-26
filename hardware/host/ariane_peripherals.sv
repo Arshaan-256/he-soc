@@ -38,7 +38,7 @@ module ariane_peripherals
     input  logic            cluster_eoc_i   ,
     input  logic [N_CAN-1:0] can_irq_i      ,
     input  logic            cl_dma_pe_evt_i ,
-
+    
     `ifdef PMU_BLOCK
     // PMU
     input  logic [PMU_NUM_COUNTER-1:0]  pmu_intr_i,

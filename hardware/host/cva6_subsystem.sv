@@ -70,7 +70,8 @@ module cva6_subsystem
 
   `ifdef PMU_BLOCK
   // From AXI4-Lite Bar
-  AXI_BUS.Slave            axi_lite_slave,
+  AXI_BUS.Slave               axi_lite_slave,
+  // PMU Interrupt Signal
   input  logic [PMU_NUM_COUNTER-1:0]  pmu_intr_i,
   `endif
 
@@ -88,16 +89,13 @@ module cva6_subsystem
   AXI_BUS.Master          apb_axi_master,
   AXI_BUS.Master          hyper_axi_master,
   AXI_BUS.Master          cluster_axi_master,
-
   AXI_BUS.Slave           cluster_axi_slave
-  
 );
-
-  // disable test-enable
+     // disable test-enable
   logic        test_en;
   logic        ndmreset;
   logic        ndmreset_n;
-  logic        debug_req_core;
+  logic [3:0]       debug_req_core;
   
   logic        jtag_enable;
   logic        init_done;
@@ -192,12 +190,12 @@ module cva6_subsystem
   // assign dummy_resp = '0;
 
   `ifdef PMU_BLOCK
-    `AXI_ASSIGN ( slave[4], axi_lite_slave )
+    `AXI_ASSIGN ( slave[ariane_soc::AXI4_Lite], axi_lite_slave )
   `else
-    `AXI_ASSIGN_FROM_REQ ( slave[4], dummy_req  )
-    `AXI_ASSIGN_TO_RESP  ( dummy_resp, slave[4] )
-  `endif
-   
+    `AXI_ASSIGN_FROM_REQ ( slave[ariane_soc::AXI4_Lite], dummy_req  )
+    `AXI_ASSIGN_TO_RESP  ( dummy_resp, slave[ariane_soc::AXI4_Lite] )
+  `endif 
+
   // ---------------
   // Debug
   // ---------------
@@ -340,8 +338,9 @@ module cva6_subsystem
     .data_i     ( dm_slave_rdata            )
   );
 
-  `AXI_ASSIGN_FROM_REQ(slave[1],dm_axi_m_req)
-  `AXI_ASSIGN_TO_RESP(dm_axi_m_resp,slave[1])
+  `AXI_ASSIGN_FROM_REQ(slave[ariane_soc::DEBUG],dm_axi_m_req)
+  `AXI_ASSIGN_TO_RESP(dm_axi_m_resp,slave[ariane_soc::DEBUG])
+
 
    
   axi_adapter #(
@@ -504,15 +503,15 @@ module cva6_subsystem
     .USER_WIDTH ( AXI_USER_WIDTH           )
   ) soc2cluster_cut (
     .clk_i,
-    .rst_ni ( ndmreset_n                ),
-    .in     ( cluster_axi_master_cut    ),
-    .out    ( cluster_axi_master        )
+    .rst_ni     ( ndmreset_n               ),
+    .in         ( cluster_axi_master_cut   ),
+    .out        ( cluster_axi_master       )
   );
    
   // ---------------
   // AXI CLUSTER Master
   // ---------------
-  `AXI_ASSIGN(slave[2], cluster_axi_slave)
+  `AXI_ASSIGN(slave[ariane_soc::Cluster_Master],cluster_axi_slave)
    
   // ---------------
   // AXI Xbar
@@ -664,7 +663,6 @@ module cva6_subsystem
     .ipi_o       ( ipi            )
   );
 
-
   `AXI_ASSIGN_TO_REQ(axi_clint_req,master[ariane_soc::CLINT])
   `AXI_ASSIGN_FROM_RESP(master[ariane_soc::CLINT],axi_clint_resp)
 
@@ -721,8 +719,8 @@ module cva6_subsystem
   `AXI_ASSIGN_TO_REQ(ddr_1_in_req,serial_link_master)
   `AXI_ASSIGN_FROM_RESP(serial_link_master, ddr_1_in_rsp)
 
-  `AXI_ASSIGN_FROM_REQ(slave[3], ddr_1_out_req)
-  `AXI_ASSIGN_TO_RESP(ddr_1_out_rsp, slave[3])
+  `AXI_ASSIGN_FROM_REQ(slave[ariane_soc::Serial_Link], ddr_1_out_req)
+  `AXI_ASSIGN_TO_RESP(ddr_1_out_rsp, slave[ariane_soc::Serial_Link])
 
   `REG_BUS_ASSIGN_TO_REQ(reg_req,serial_linkcfg_reg_master)
   `REG_BUS_ASSIGN_FROM_RSP(serial_linkcfg_reg_master,reg_rsp)
