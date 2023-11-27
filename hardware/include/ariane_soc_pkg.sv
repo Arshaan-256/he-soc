@@ -11,15 +11,38 @@
 // Author: Florian Zaruba, ETH Zurich
 // Description: Contains SoC information as constants
 package ariane_soc;
-  // M-Mode Hart, S-Mode Hart
-  localparam int unsigned NumTargets = 2;
+  // Have to manually add more cores in cva6_subsystem, 
+  // and in `ariane_soc/axi_masters_t` if this parameter is changed.
+  localparam int unsigned NumCores    = 1;
+
+  // M-Mode Hart, S-Mode Hart for each core
+  localparam int unsigned NumTargets  = 2*NumCores;
   // Uart, SPI, Ethernet, reserved
-  localparam int unsigned NumSources = 255;
+  localparam int unsigned NumSources  = 255;
   localparam int unsigned MaxPriority = 7;
 
-  localparam NrSlaves = 4+1; // actually masters, but slaves on the crossbar: Debug module, CVA6, Cluster, AXI4-Lite
+  // actually masters, but slaves on the crossbar 
+  // localparam NrSlaves = 4+1+3;
+  // // Slave 0: CVA6-0
+  // // Slave 1: Debug Module
+  // // Slave 2: Cluster
+  // // Slave 3: DDR / Serial Link (?) 
+  // // Slave 4: CVA6-1
+  // // Slave 5: CVA6-2
+  // // Slave 6: CVA6-3
+  // // Slave 7: AXI4-Lite
 
-   
+  typedef enum int unsigned {
+    Core_0         = 4,
+    AXI4_Lite      = 3,
+    Cluster_Master = 2,
+    Serial_Link    = 1,
+    DEBUG          = 0
+  } axi_masters_t;
+
+  // actually masters, but slaves on the crossbar 
+  localparam NrSlaves = 5;
+
   typedef struct packed {
       logic [31:0] idx;
       logic [63:0] start_addr;
@@ -53,7 +76,7 @@ package ariane_soc;
     ROM         = 1,
     Debug       = 0
   } axi_slaves_t;
-   
+  
   localparam NB_PERIPHERALS = HYAXI + 1;
 
   `ifdef FPGA_EMUL 
@@ -85,19 +108,19 @@ package ariane_soc;
   localparam bit GenProtocolChecker = 1'b0;
 
   typedef enum logic [63:0] {
-    DebugBase    = 64'h0000_0000,
-    ROMBase      = 64'h0001_0000,
-    CLINTBase    = 64'h0200_0000,
-    PLICBase     = 64'h0C00_0000,
-    ClusterBase  = 64'h1000_0000,
-    AXILiteBase  = 64'h1040_0000,                             
-    APB_SLVSBase = 64'h1A10_0000,
-    L2SPMBase    = 64'h1C00_0000,
-    TimerBase    = 64'h1800_0000,
-    SPIBase      = 64'h2000_0000,
-    EthernetBase = 64'h3000_0000,
-    UARTBase     = 64'h4000_0000,
-    SerLink_Base = 64'h6000_0000,
+    DebugBase    = 64'h0000_0000, // 0
+    ROMBase      = 64'h0001_0000, // 1
+    CLINTBase    = 64'h0200_0000, // 2
+    PLICBase     = 64'h0C00_0000, // 3
+    ClusterBase  = 64'h1000_0000, // 4
+    AXILiteBase  = 64'h1040_0000, // 5                           
+    APB_SLVSBase = 64'h1A10_0000, // 6
+    L2SPMBase    = 64'h1C00_0000, // 7
+    TimerBase    = 64'h1800_0000, // 8
+    SPIBase      = 64'h2000_0000, // 9
+    EthernetBase = 64'h3000_0000, // 10
+    UARTBase     = 64'h4000_0000, // 11
+    SerLink_Base = 64'h6000_0000, // 12
     HYAXIBase    = 64'h8000_0000
   } soc_bus_start_t; 
   // Let x = NB_PERIPHERALS: as long as Base(xth slave)+Length(xth slave) is < 1_0000_0000 we can cut the 32 MSBs addresses without any worries. 
@@ -143,5 +166,18 @@ package ariane_soc;
     logic         ddr2_o;
     logic         ddr3_o;
   } ser_link_to_pad;
+
+  // AXI LLC
+  // Cache size = 32 x 128 x 8 x 8 = 256kB.
+  // Each core partition is 64kB.
+  localparam LLC_SET_ASSOC  = 32'd32;
+  localparam LLC_NUM_LINES  = 32'd128;
+  localparam LLC_NUM_BLOCKS = 32'd8;
+
+  // PMU Defines
+  typedef enum int unsigned {
+    SPU_Core_0 = 1,
+    SPU_Memory = 0
+  } spu_masters_t;
 
 endpackage
