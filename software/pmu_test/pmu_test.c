@@ -170,7 +170,7 @@ int main(int argc, char const *argv[]) {
           );
         #endif
       }
-    }
+    } 
 
   printf("The test is over!\n");
   printf("Errors: %0d\n", error_count);
