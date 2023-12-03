@@ -119,6 +119,10 @@ uint32_t test_pmu_core_counter_b_writes (
             uint32_t num_counter,
             uint32_t DEBUG);
 
+// Runs the following test functions:
+//      1. `test_spm_rand` for ISPM and DSPM
+//      2. `test_pmu_core_bubble_sort`
+//      3. `test_pmu_core_counter_b_writes`
 uint32_t run_pmu_core_test_suite (
             uint32_t ispm_base_addr, 
             uint32_t counter_b_base_addr,
@@ -129,21 +133,35 @@ uint32_t run_pmu_core_test_suite (
             uint32_t arr_len,
             uint32_t DEBUG);
 
+// Send a halting request to the debug module (0x512) the selected core using `core_id`.
 uint32_t pmu_halt_core (
               uint32_t program_start_addr,
               uint32_t pmc_status_base_addr, 
               uint32_t core_id,
               uint32_t DEBUG);
 
+// Send a resume request to the debug module (0x512 + 0x8) the selected core using `core_id`.
 uint32_t pmu_resume_core (
               uint32_t program_start_addr,
               uint32_t pmc_status_base_addr, 
               uint32_t core_id,
               uint32_t DEBUG);
 
+// Tests the debug module capabilities by halting and resuming all the cores.
+// The PMU core will halt all cores, then wait `wait_before_resuming` clock cycles, and resume all cores.
+// This function works well in simulation. On board functionality is not guaranteed.
 uint32_t test_pmu_debug_func (
               uint32_t program_start_addr,
               uint32_t pmc_status_base_addr, 
               uint32_t num_core,
               uint32_t wait_before_resuming,
-              uint32_t DEBUG);            
+              uint32_t DEBUG); 
+
+uint32_t test_case_study (
+              uint32_t ispm_base_addr,
+              uint32_t dspm_base_addr,
+              uint32_t pmc_status_base_addr, 
+              uint32_t counter_base_addr,
+              uint32_t counter_bundle_size,
+              uint32_t num_core,
+              uint32_t DEBUG);        

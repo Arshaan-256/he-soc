@@ -38,7 +38,7 @@
 ///     3. Event Info Configuration Register      BASE_ADDR + 0x8
 ///     4. Initial Budget Register                BASE_ADDR + 0xc
 
-#define NUM_COUNTER 8
+#define NUM_COUNTER 12
 
 #define TIMER_WIDTH     0x8
 #define STATUS_WIDTH    0x4

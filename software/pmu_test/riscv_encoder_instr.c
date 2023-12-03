@@ -5,7 +5,7 @@ uint32_t encodeLUI (uint32_t rd, uint32_t imm, uint32_t DEBUG) {
     instruction |= ((rd & 0x1F) << 7);
     instruction |= ((imm & 0xFFFFF) << 12);
     if (DEBUG)
-        printf("lui x%0d, x%0d: %x\n", rd, imm, instruction);
+        printf("lui x%0d, %0d: %x\n", rd, imm, instruction);
     return instruction;
 }
 
