@@ -46,6 +46,7 @@ hardware/fpga/*.srcs
 hardware/fpga/*.xpr
 hardware/.bender
 hardware/compile.tcl
+hardware/tb/vip/*
 build/
 *.vcd
 *.log
