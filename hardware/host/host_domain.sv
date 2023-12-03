@@ -165,7 +165,7 @@ module host_domain
   ariane_axi_soc::req_lite_t  axi_lite_pmu_cfg_req;
   ariane_axi_soc::resp_lite_t axi_lite_pmu_cfg_res;
 
-  localparam int unsigned PMU_NUM_COUNTER = 12;
+  localparam int unsigned PMU_NUM_COUNTER = 32;
   
   logic  [PMU_NUM_COUNTER-1:0] pmu_intr_o;
 `endif 
@@ -300,28 +300,7 @@ module host_domain
   // For size in Bytes, 11-bits are enough (8 for AXI_LENGTH and 3 for AXI_SIZE).
   // For size in cachelines, 6-bits are enough.
 
-  pmu_pkg::pmu_event_t [1:0] spu_out;
-
-  spu_top #(
-    // Static configuration parameters of the cache.
-    .SetAssociativity   ( ariane_soc::LLC_SET_ASSOC   ),
-    .NumLines           ( ariane_soc::LLC_NUM_LINES   ),
-    .NumBlocks          ( ariane_soc::LLC_NUM_BLOCKS  ),
-    // AXI4 Specifications
-    .IdWidthMasters     ( ariane_soc::IdWidth         ),
-    .IdWidthSlaves      ( ariane_soc::IdWidthSlave+ 1 ),
-    .AddrWidth          ( AXI_ADDRESS_WIDTH           ),
-    .DataWidth          ( AXI_DATA_WIDTH              ),
-    // FIFO and CAM Parameters
-    .CAM_DEPTH          ( 17                          ),
-    .FIFO_DEPTH         (  8                          )
-  ) i_spu_cpu_llc (
-    .clk_i              ( s_soc_clk                   ),
-    .rst_ni             ( s_synch_soc_rst             ),
-    .spu_slv            ( hyper_axi_bus               ),
-    .spu_mst            ( hyper_axi_spu_o_bus         ),
-    .e_out              ( spu_out[ariane_soc::SPU_LLC_In]  ) 
-  );
+  pmu_pkg::pmu_event_t [ariane_soc::NumCores:0] spu_out;
 
   spu_top #(
     // Static configuration parameters of the cache.
@@ -341,12 +320,12 @@ module host_domain
     .rst_ni             ( s_synch_soc_rst             ),
     .spu_slv            ( mem_axi_bus_spu_o_bus       ),
     .spu_mst            ( mem_axi_bus                 ),
-    .e_out              ( spu_out[ariane_soc::SPU_LLC_Out] )
+    .e_out              ( spu_out[ariane_soc::SPU_Memory] )
   );
 
   // The PMU only works with 32-bit AXI4-Lite port.
   pmu_top #(
-    .NUM_PORT         ( 2                             ),
+    .NUM_PORT         ( 5                             ),
     .NUM_COUNTER      ( PMU_NUM_COUNTER               ),
     .DEBUG_START_ADDR ( ariane_soc::DebugBase         ),
     .DEBUG_LENGTH     ( ariane_soc::DebugLength       ),
@@ -442,17 +421,16 @@ module host_domain
 
 `else
 
-`ifdef PMU_BLOCK
   // Converts AXI BUS signals to request packets.
-  `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_spu_o_bus )
-  `AXI_ASSIGN_FROM_RESP( hyper_axi_spu_o_bus, axi_cpu_res )
+  //     ASSIGN            DST            SRC
+  `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_bus )
+  `AXI_ASSIGN_FROM_RESP( hyper_axi_bus, axi_cpu_res )
+
+`ifdef PMU_BLOCK
   // Converts request packets to AXI Bus signals.
   `AXI_ASSIGN_FROM_REQ( mem_axi_bus_spu_o_bus, axi_mem_req )
   `AXI_ASSIGN_TO_RESP( axi_mem_res, mem_axi_bus_spu_o_bus )
 `else
-  // Converts AXI BUS signals to request packets.
-  `AXI_ASSIGN_TO_REQ ( axi_cpu_req, hyper_axi_bus )
-  `AXI_ASSIGN_FROM_RESP( hyper_axi_bus, axi_cpu_res )
   // Converts request packets to AXI Bus signals.
   `AXI_ASSIGN_FROM_REQ( mem_axi_bus, axi_mem_req )
   `AXI_ASSIGN_TO_RESP( axi_mem_res, mem_axi_bus )
@@ -551,6 +529,10 @@ module host_domain
     .cluster_axi_slave    ( cluster_axi_slave    ),
 
     `ifdef PMU_BLOCK
+    .spu_core_0_out       ( spu_out[ariane_soc::SPU_Core_0] ),
+    .spu_core_1_out       ( spu_out[ariane_soc::SPU_Core_1] ),
+    .spu_core_2_out       ( spu_out[ariane_soc::SPU_Core_2] ),
+    .spu_core_3_out       ( spu_out[ariane_soc::SPU_Core_3] ),
     // From AXI4-Lite Bar
     .pmu_intr_i           ( pmu_intr_o           ),
     // PMU Interrupt Signal
