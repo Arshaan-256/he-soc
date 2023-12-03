@@ -44,9 +44,11 @@ hardware/fpga/*.ip_user_files
 hardware/fpga/*.runs
 hardware/fpga/*.srcs
 hardware/fpga/*.xpr
+hardware/fpga/*.mif
 hardware/.bender
 hardware/compile.tcl
 hardware/tb/vip/*
+hardware/regression.list
 build/
 *.vcd
 *.log
