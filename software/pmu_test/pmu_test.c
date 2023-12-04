@@ -1,70 +1,84 @@
-/// This assumes the following: 
-///   1. The PMU counters (including the initial budget registers) are 32-bit with 
-///      the 31st bit reserved for Pending.
-///   2. Both the configuration registers are 32-bits.
-///
-/// NUM_COUNTER is parameterizable and should be set to the number of counters in the PMU.
-/// The memory map of the PMU is as follows:
-///     /************************************\
-///     | Initial Budget Register            |
-///     | Event Info Configuration Register  |          Not yet 4kB aligned
-///     | Event Selection Register           |              Counter Bundle
-///     | Counter                            |
-///     \************************************/
-///                     .
-///                     .                         ... x (NUM_COUNTER)
-///                     .
-///     /************************************\
-///     | Initial Budget Register            |
-///     | Event Info Configuration Register  |          Not yet 4kB aligned          
-///     | Event Selection Register           |              Counter Bundle
-///     | Counter                            |
-///     \************************************/
-///     /************************************\
-///     | Initial Budget Register            |
-///     | Event Info Configuration Register  |          Not yet 4kB aligned
-///     | Event Selection Register           |              Counter Bundle
-///     | Counter                            |
-///     \************************************/
-///     /************************************\
-///     | MemGuard Period Register           |          Not yet 4kB aligned
-///     | PMU Timer                          |              PMU Bundle
-///     \************************************/
-/// Each block is a separate 4kB-aligned page.
-/// The PMU Bundle includes the PMU Timer and the MemGuard Period Register.
-/// A counter bundle includes:
-///     1. Counter
-///     2. Event Selection Register
-///     3. Event Info Configuration Register
-///     4. Initial Budget Register
-
 #include "encoding.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"
 #include "pmu_test_func.c"
-#define JUMP_CUA 8
-#define CUA_RD
+
+// The CUA will always miss in the L1 but after one run of the loop, it will never miss in the LLC.
+
+#define NUM_NON_CUA 0
+
+#define RD_WITH_RD
+// #define WR_WITH_WR
+// #define RD_WITH_WR
+// #define WR_WITH_RD
+
+// #define RD_ONLY
+// #define WR_ONLY
+
+#ifndef TESTS_AUTO
+  #define JUMP_CUA        8    // multiply by 8 for bytes
+  #define JUMP_NONCUA     8    // multiply by 8 for bytes
+  // #define LEN_NONCUA   32768
+  // #define LEN_NONCUA   524288
+  #define LEN_NONCUA   40960
+  // #define LEN_NONCUA   262144 
+  #define START_NONCUA    0
+#endif
+
+# ifdef RD_ONLY
+  #define CUA_RD
+#elif defined(WR_ONLY)
+  #define CUA_WR  
+#elif defined(RD_WITH_RD)
+  #define CUA_RD 
+  #define INTF_RD
+#elif defined(WR_WITH_WR)
+  #define CUA_WR
+  #define INTF_WR 
+#elif defined(RD_WITHLY)
+  #define CUA_RD
+#elif defined(WR_WITHLY)
+  #define CUA_WR
+#elif defined(RD_WITH_WR)
+  #define CUA_RD
+  #define INTF_WR 
+#elif defined(WR_WITH_RD)
+  #define CUA_WR
+  #define INTF_RD 
+#endif
+
+void test_cache(uint32_t num_counter, uint32_t *print_info);
+void test_cache2(uint32_t num_counter, uint32_t *print_info);
+
+// Sometimes the UART skips over output.
+// Gives the UART more time to finish output before filling up the UART Tx FIFO with more data.
+void my_sleep() {
+  uint32_t sleep = 100000;
+  for (volatile uint32_t i=0; i<sleep; i++) {
+    asm volatile ("fence");
+    asm volatile ("addi x1, x1, 1");
+    asm volatile ("fence");
+  }  
+}
+
+void end_test(uint32_t mhartid){
+  printf("Exiting: %0d.\r\n", mhartid);
+}
+
+#define write_32b(addr, val_)  (*(volatile uint32_t *)(long)(addr) = val_)
 
 // *********************************************************************
 // Main Function
 // *********************************************************************
 int main(int argc, char const *argv[]) {
-  #ifdef FPGA_EMULATION
-  uint32_t baud_rate = 9600;
-  uint32_t test_freq = 100000000;
-  #else
-  set_flls();
-  uint32_t baud_rate = 115200;
-  uint32_t test_freq = 100000000;
-  #endif
-
+  
   volatile uint32_t read_target_0;
   volatile uint32_t read_target_1;
   volatile uint32_t read_target_2;
   volatile uint32_t read_target_3;
 
-  uart_set_cfg(0,(test_freq/baud_rate)>>4);
+  
 
   uint32_t mhartid;
   asm volatile (
@@ -72,168 +86,427 @@ int main(int argc, char const *argv[]) {
     : "=r" (mhartid)
   );
 
-  uint32_t dspm_base_addr = DSPM_BASE_ADDR;
+  uint32_t dspm_base_addr;
   uint32_t read_target;
   uint32_t error_count = 0;
-
-  uint32_t counter_val[]          = {0x1, 0x2, 0x3, 0x4};
-  uint32_t event_sel_val[]        = {0x1000, 0x2000, 0x3000, 0x4000};
-  uint32_t port_1_event_sel_val[]    = {0x1F0011, 0x1F0021, 0x1F003F, 0x1F004F};
-  uint32_t port_2_event_sel_val[]    = {0x2F001F, 0x2F002F, 0x2F003F, 0x2F004F};
-  uint32_t event_info_val[]       = {0x10, 0x20, 0x30, 0x40};
-  uint32_t init_budget_val[]      = {0x100, 0x200, 0x300, 0x400};
-
-  counter_b_t counter_b[NUM_COUNTER];
-
-  for (uint32_t i=0; i<NUM_COUNTER; i++) {
-    counter_b[i].counter     = counter_val[i];
-    counter_b[i].event_sel   = event_sel_val[i];
-    counter_b[i].event_info  = event_info_val[i];
-    counter_b[i].init_budget = init_budget_val[i];
-  }
 
   // *******************************************************************
   // Core 0
   // *******************************************************************
-  if (mhartid == 0) {
-    write_32b(dspm_base_addr, 0xF0);
+  if (mhartid == 0) {   
+    #ifdef FPGA_EMULATION
+    uint32_t baud_rate = 9600;
+    uint32_t test_freq = 100000000;
+    #else
+    set_flls();
+    uint32_t baud_rate = 115200;
+    uint32_t test_freq = 50000000;
+    #endif
+    uart_set_cfg(0,(test_freq/baud_rate)>>4);
 
-    while (1) {  
-      read_target_0 = read_32b(dspm_base_addr);
-      if (read_target_0 == 0xF0) {
-        break;
-      }
+    // Partition the cache.
+    write_32b(0x50 + 0x10401000, 0xFFFFFF00);
+    write_32b(0x54 + 0x10401000, 0xFFFF00FF);
+    write_32b(0x58 + 0x10401000, 0xFF00FFFF);
+    write_32b(0x5c + 0x10401000, 0x00FFFFFF);
+
+    // Wait before running the program.
+    uint32_t var;
+    volatile uint64_t *array = (uint64_t*) 0x83000000;
+    for (int a_idx = START_NONCUA; a_idx < LEN_NONCUA / 1024; a_idx +=JUMP_NONCUA) {
+      #ifdef INTF_RD
+        asm volatile (
+          "ld   %0, 0(%1)\n"  // read addr_var data into read_var
+          : "=r"(var)
+          : "r"(array - a_idx)
+        );
+      #elif defined(INTF_WR)
+        var = a_idx;
+        asm volatile (
+          "sd   %0, 0(%1)\n"  // read addr_var data into read_var
+          :: "r"(var),
+              "r"(array - a_idx)
+        );
+      #endif
     }
-    printf("Hello CVA6-0!\n");
-    uart_wait_tx_done();
-    // error_count += test_spm_rand(ISPM_BASE_ADDR, 100);
-    // printf("Testing counters!\n");
-    // error_count += test_counter_bundle(COUNTER_BASE_ADDR, NUM_COUNTER, COUNTER_BUNDLE_SIZE, counter_b);
+    
+    #ifdef RD_WITH_RD
+      printf("Read on read contention Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+    #elif defined(WR_WITH_WR)
+      printf("Write on write contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+    #elif defined(RD_ONLY)
+      printf("Only read in CUA, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+    #elif defined(WR_ONLY)
+      printf("Only write in CUA, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+    #elif defined(RD_WITH_WR)
+      printf("Read on write contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+    #elif defined(WR_WITH_RD)
+      printf("Write on read contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+    #endif
+    
+    #if defined(CUA_RD)
+    // this is for when cua is making reads
+    uint32_t event_sel[]  = {LLC_RD_REQ_CORE_0,   // llc read request by core 0
+                             LLC_RD_RES_CORE_0,   // llc read response by core 0
+                             MEM_RD_REQ_CORE_0,   // mem read request by core 0
+                             MEM_RD_RES_CORE_0};  // mem read response by core 0
+    
+    #elif defined(CUA_WR)
+    // this is for when cua is making writes
+    uint32_t event_sel[]  = {LLC_WR_REQ_CORE_0,   // llc read request by core 0
+                             LLC_WR_RES_CORE_0,   // llc read response by core 0
+                             MEM_WR_REQ_CORE_0,   // mem read request by core 0
+                             MEM_WR_RES_CORE_0};  // mem read response by core 0
+    #endif
 
-    // Setup event_sel registers.
-    printf("Setting up event_sel_config!\n");
-    uart_wait_tx_done();
-    write_32b_regs(EVENT_SEL_BASE_ADDR, NUM_COUNTER, port_1_event_sel_val, COUNTER_BUNDLE_SIZE);
+    // this doesn't change
+    uint32_t event_info[] = {0x000000,
+                             ADD_RESP_LAT,
+                             0x000000,
+                             ADD_RESP_LAT};
+
+    write_32b_regs(EVENT_SEL_BASE_ADDR, 4, event_sel, COUNTER_BUNDLE_SIZE);
+    write_32b_regs(EVENT_INFO_BASE_ADDR, 4, event_info, COUNTER_BUNDLE_SIZE);
+    uint32_t print_info[] = {-1,0,-1,2};
+    // test_cache2 (4, print_info);
+
+    // pmu_halt_core(
+    //             ISPM_BASE_ADDR,
+    //             PMC_STATUS_ADDR,
+    //             1,
+    //             2
+    // );
+
+    // while (!read_32b(DSPM_BASE_ADDR));
+
+    // printf("Resume the core.");
+    // pmu_resume_core(
+    //             ISPM_BASE_ADDR,
+    //             PMC_STATUS_ADDR,
+    //             1,
+    //             2
+    // );
+
+    error_count = test_case_study_without_debug (
+                     ISPM_BASE_ADDR,
+                     DSPM_BASE_ADDR,
+                     PMC_STATUS_ADDR, 
+                     COUNTER_BASE_ADDR,
+                     COUNTER_BUNDLE_SIZE,
+                     4,
+                     2);
+
 
     printf("CVA6-0 Over, errors: %0d!\n", error_count);
+
+    end_test(mhartid);
     uart_wait_tx_done();
 
-    asm volatile ("fence");
-    write_32b(dspm_base_addr, 0xF91);
-    asm volatile ("fence");
+  // *******************************************************************
+  // Core 1-3
+  // *******************************************************************
+  } else if (mhartid <= NUM_NON_CUA) {
+    // if (mhartid == 1) while(1){};
+    // if (mhartid == 2) while(1){};
+    // if (mhartid == 3) while(1){};
 
-    uint32_t result_0 = array_traversal(NUM_ELEMENT*(1));
-  // *******************************************************************
-  // Core 1
-  // *******************************************************************
-  } else if (mhartid == 1) {
+    printf("Entering: %d.\r\n", mhartid);
+    uart_wait_tx_done();
+
     while (1) {
-      asm volatile ("fence");
-      read_target_1 = read_32b(dspm_base_addr);
-      if (read_target_1 == 0xF91) {
-        break;
-      }
+      asm volatile ("interfering_cores:");
+      uint64_t var;
+      volatile uint64_t *array = (uint64_t*)(uint64_t)(0x83000000 + mhartid * 0x01000000);
+      
+      // 32'd1048576/2 = 0x0010_0000/2 elements.
+      // Each array element is 64-bit, the array size is 0x0040_0000 = 4MB.
+      // This will always exhaust the 2MB LLC.
+      // Each core has 0x0100_0000 (16MB) memory.
+      // It will iterate over 4MB array from top address to down
+      for (int a_idx = START_NONCUA; a_idx < LEN_NONCUA; a_idx +=JUMP_NONCUA) {
+        #ifdef INTF_RD
+          asm volatile (
+            "ld   %0, 0(%1)\n"  // read addr_var data into read_vart
+            : "=r"(var)
+            : "r"(array - a_idx)
+          );
+        #elif defined(INTF_WR)
+          var = a_idx;
+          asm volatile (
+            "sd   %0, 0(%1)\n"  // read addr_var data into read_var
+            :: "r"(var),
+               "r"(array - a_idx)
+          );
+        #endif
+      } 
     }
-    printf("Hello CVA6-1!\n");
-    // uart_wait_tx_done();
-    // error_count += test_spm_rand(ISPM_BASE_ADDR, 100);
-    // printf("CVA6-1 Over, errors: %0d!", error_count);
-
-    // // Update DSPM target variable.
-    // asm volatile ( 
-    //   "li   %0, 0xF2\n"  // write read_var into addr_var
-    //   : "=r"(read_target_1)
-    // );
-
-    // asm volatile ( 
-    //   "sw   %0, 0(%1)\n"  // write read_var into addr_var
-    //   : "=r"(read_target_1)
-    //   : "r"(dspm_base_addr)
-    // );   
-    while (1) { 
-      uint32_t result_1 = array_traversal(NUM_ELEMENT*(10+1));
-    }
-  // *******************************************************************
-  // Core 2
-  // *******************************************************************
-  } else if (mhartid == 2) {
-    // while (1) {
-    //   asm volatile ( 
-    //     "lw   %0, 0(%1)\n"  // read addr_var data into read_var
-    //     : "=r"(read_target_2)
-    //     : "r"(dspm_base_addr)
-    //   );
-    //   if (read_target_2 == 0xF2) {
-    //     break;
-    //   }
-    // }
-    // printf("Hello CVA6-2!\n");
-    // uart_wait_tx_done();
-    // error_count += test_spm_rand(ISPM_BASE_ADDR, 100);
-    // printf("CVA6-2 Over, errors: %0d!", error_count);
-
-    // // Update DSPM target variable.
-    // asm volatile ( 
-    //   "li   %0, 0xF3\n"  // write read_var into addr_var
-    //   : "=r"(read_target_2)
-    // );
-
-    // asm volatile ( 
-    //   "sw   %0, 0(%1)\n"  // write read_var into addr_var
-    //   : "=r"(read_target_2)
-    //   : "r"(dspm_base_addr)
-    // );
-    while (1) { 
-      uint32_t result_2 = array_traversal(NUM_ELEMENT*(11+1));
-    }
-  // *******************************************************************
-  // Core 3
-  // *******************************************************************
-  } else if (mhartid == 3) {
-    // while (1) {
-    //   asm volatile ( 
-    //     "lw   %0, 0(%1)\n"  // read addr_var data into read_var
-    //     : "=r"(read_target_3)
-    //     : "r"(dspm_base_addr)
-    //   );
-    //   if (read_target_3 == 0xF3) {
-    //     break;
-    //   }
-    // }
-    // printf("Hello CVA6-3!\n");
-    // uart_wait_tx_done();
-    // error_count += test_spm_rand(ISPM_BASE_ADDR, 100);
-    // printf("CVA6-3 Over, errors: %0d!", error_count);
-
-    // // Update DSPM target variable.
-    // asm volatile ( 
-    //   "li   %0, 0xF4\n"  // write read_var into addr_var
-    //   : "=r"(read_target_3)
-    // );
-
-    // asm volatile ( 
-    //   "sw   %0, 0(%1)\n"  // write read_var into addr_var
-    //   : "=r"(read_target_3)
-    //   : "r"(dspm_base_addr)
-    // );
-    while (1) { 
-      uint32_t result_3 = array_traversal(NUM_ELEMENT*(12+1));
-    }
+  } else {
+    end_test(mhartid);
+    uart_wait_tx_done();
+    while (1);
   }
-
-  uint32_t counter_rval[] = {0x0, 0x0, 0x0, 0x0};
-  read_32b_regs(COUNTER_BASE_ADDR, NUM_COUNTER, counter_rval, COUNTER_BUNDLE_SIZE);
-  printf("Reading output\n");
-  for (uint32_t i=0; i<NUM_COUNTER; i++) {
-    printf("  Counter %0d: %0d (%x) \n", i, counter_rval[i] & 0x7FFFFFFF, counter_rval[i]);
-  }
-  // printf("The test is over!\n");
-  // printf("Errors: %0d\n", error_count);
-  // uart_wait_tx_done();
-
+  
   return 0;
 }
 
+void test_cache(uint32_t num_counter, uint32_t *print_info) {
+  // For testing write, we need to be careful so as to not overwrite the program.
+  // This is why the EVAL_LEN is restricted to 37 (4MB).
+  #ifdef CUA_RD
+    #define EVAL_LEN 37
+  #elif defined (CUA_WR)
+    #define EVAL_LEN 37
+  #else
+    #define EVAL_LEN 0
+  #endif
 
+  int eval_array[] = {16,
+                      32,
+                      64,
+                      128,
+                      256,
+                      512,
+                      1024,
+                      2048,
+                      4096,
+                      5120,
+                      6144,
+                      7168,
+                      8192,
+                      9216,
+                      10240,
+                      11264,
+                      12288,
+                      13312,
+                      14336,
+                      15360,
+                      16384,
+                      20480,
+                      24576,
+                      28672,
+                      32768,
+                      36864,
+                      40960,
+                      45056,
+                      49152,
+                      53248,
+                      57344,
+                      61440,
+                      65536,
+                      131072,
+                      262144,
+                      524288,
+                      1048576};
 
+  // uint32_t counter_rval[NUM_COUNTER];
+  volatile uint64_t *array = (uint64_t*) 0x83000000;
 
+  for(uint32_t a_len = 1; a_len < EVAL_LEN; a_len++) { 
+    uint64_t var;
+    uint64_t curr_cycle;
+    uint64_t end_cycle;
+    uint64_t curr_miss;
+    uint64_t end_miss;
+    uint64_t a_len2;
+    uint32_t counter_rst[num_counter];
+    uint32_t counter_init[num_counter];
+    uint32_t counter_final[num_counter];
+
+    a_len2 = eval_array[a_len];
+    for(uint32_t i=0; i<num_counter; i++)
+      counter_rst[i] = 0;
+
+    uint32_t N_REPEAT = 100;
+
+    for (int a_idx = 0; a_idx < a_len2; a_idx+=JUMP_CUA) {
+      #ifdef CUA_RD
+        asm volatile (
+          "ld   %0, 0(%1)\n"
+          : "=r"(var)
+          : "r"(array - a_idx)
+        );
+      #elif defined(CUA_WR)
+        asm volatile (
+          "sd   %0, 0(%1)\n"
+          :: "r"(var),
+             "r"(array - a_idx)
+        );
+      #endif
+    }
+
+    // Reset all counters.
+    write_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_rst, COUNTER_BUNDLE_SIZE);
+
+    asm volatile("csrr %0, 0xb04" : "=r" (curr_miss) : );
+    read_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_init, COUNTER_BUNDLE_SIZE);
+    curr_cycle = read_csr(cycle);
+    
+    for (int a_repeat = 0; a_repeat < N_REPEAT; a_repeat++){
+      for (int a_idx = 0; a_idx < a_len2; a_idx+=JUMP_CUA) {
+        #ifdef CUA_RD
+          asm volatile ( 
+            "ld   %0, 0(%1)\n"
+            : "=r"(var)
+            : "r"(array - a_idx)
+          );
+        #elif defined(CUA_WR)
+          var = a_idx;
+          asm volatile ( 
+            "sd   %0, 0(%1)\n"
+            :: "r"(var),
+               "r"(array - a_idx)
+          );
+        #endif
+      }
+    }
+
+    end_cycle = read_csr(cycle) - curr_cycle;
+    read_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_final, COUNTER_BUNDLE_SIZE);
+    asm volatile("csrr %0, 0xb04" : "=r" (end_miss) : );
+
+    // Size in Bytes.
+    printf("Size:%d,", (a_len2*8)/1024);
+
+    // Load-store cycle count
+    uint32_t num_ls_made = N_REPEAT*(a_len2/JUMP_CUA);
+    volatile uint64_t ld_sd_cc = (end_cycle/num_ls_made);
+    printf("LS-CC (%d):%d,", num_ls_made, ld_sd_cc);
+
+    // L1 D-cache misses
+    printf("D1-miss:%d,", end_miss-curr_miss);
+
+    uint32_t counter_data[31];
+    for (uint32_t i=0; i<num_counter; i++) {
+      counter_data[i] = (counter_final[i] & 0x7FFFFFFF)-(counter_init[i] & 0x7FFFFFFF); 
+    }
+
+    // The counters overflow
+    for (uint32_t i=0; i<num_counter; i++) {
+      if (print_info[i] == -1) {
+        printf("%d:%d", i, counter_data[i]);
+      } else {
+        if (counter_data[i] != 0) {
+          printf("%d:%d", i, counter_data[i] / counter_data[print_info[i]]);
+        } else {
+          printf("%d:%d", i, counter_data[i]);
+        }
+      }
+      printf("(%d,%d)",counter_init[i]&0x7FFFFFFF, counter_final[i]&0x7FFFFFFF);
+      if (i != num_counter-1) printf(",");
+      else                    printf(".");
+    }
+
+    printf("\r\n");
+  }
+}
+
+void test_cache2(uint32_t num_counter, uint32_t *print_info) {
+  // For testing write, we need to be careful so as to not overwrite the program.
+  // This is why the EVAL_LEN is restricted to 37 (4MB).
+  #define EVAL_LEN 2
+
+  // 40 kB, 2048 kB
+  int eval_array[] = {40960, 262144};
+
+  // uint32_t counter_rval[NUM_COUNTER];
+  volatile uint64_t *array = (uint64_t*) 0x83000000;
+
+  for(uint32_t a_len = 0; a_len < EVAL_LEN; a_len++) { 
+    uint64_t var;
+    uint64_t curr_cycle;
+    uint64_t end_cycle;
+    uint64_t curr_miss;
+    uint64_t end_miss;
+    uint64_t a_len2;
+    uint32_t counter_rst[num_counter];
+    uint32_t counter_init[num_counter];
+    uint32_t counter_final[num_counter];
+    
+    a_len2 = eval_array[a_len];
+    for(uint32_t i=0; i<num_counter; i++)
+      counter_rst[i] = 0;
+
+    uint32_t N_REPEAT = 100;
+
+    // Prime the cache.
+    for (int a_idx = 0; a_idx < a_len2; a_idx+=JUMP_CUA) {
+      #ifdef CUA_RD
+        asm volatile (
+          "ld   %0, 0(%1)\n"
+          : "=r"(var)
+          : "r"(array - a_idx)
+        );
+      #elif defined(CUA_WR)
+        asm volatile (
+          "sd   %0, 0(%1)\n"
+          :: "r"(var),
+             "r"(array - a_idx)
+        );
+      #endif
+    }
+
+    // Reset all counters.
+    write_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_rst, COUNTER_BUNDLE_SIZE);
+
+    asm volatile("csrr %0, 0xb04" : "=r" (curr_miss) : );
+    read_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_init, COUNTER_BUNDLE_SIZE);
+    curr_cycle = read_csr(cycle);
+    
+    for (int a_repeat = 0; a_repeat < N_REPEAT; a_repeat++){
+      for (int a_idx = 0; a_idx < a_len2; a_idx+=JUMP_CUA) {
+        #ifdef CUA_RD
+          asm volatile ( 
+            "ld   %0, 0(%1)\n"
+            : "=r"(var)
+            : "r"(array - a_idx)
+          );
+        #elif defined(CUA_WR)
+          var = a_idx;
+          asm volatile ( 
+            "sd   %0, 0(%1)\n"
+            :: "r"(var),
+               "r"(array - a_idx)
+          );
+        #endif
+      }
+    }
+
+    end_cycle = read_csr(cycle) - curr_cycle;
+    read_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_final, COUNTER_BUNDLE_SIZE);
+    asm volatile("csrr %0, 0xb04" : "=r" (end_miss) : );
+
+    // Size in Bytes.
+    printf("Size:%d,", (a_len2*8)/1024);
+
+    // Load-store cycle count
+    uint32_t num_ls_made = N_REPEAT*(a_len2/JUMP_CUA);
+    volatile uint64_t ld_sd_cc = (end_cycle/num_ls_made);
+    printf("LS-CC (%d):%d,", num_ls_made, ld_sd_cc);
+
+    // L1 D-cache misses
+    printf("D1-miss:%d,", end_miss-curr_miss);
+
+    uint32_t counter_data[31];
+    for (uint32_t i=0; i<num_counter; i++) {
+      counter_data[i] = (counter_final[i]&0x7FFFFFFF)-(counter_init[i]&0x7FFFFFFF); 
+    }
+
+    // The counters overflow
+    for (uint32_t i=0; i<num_counter; i++) {
+      if (print_info[i] == -1) {
+        printf("%d:%d", i, counter_data[i]);
+      } else {
+        if (counter_data[i] != 0) {
+          printf("%d:%d", i, counter_data[i] / counter_data[print_info[i]]);
+        } else {
+          printf("%d:%d", i, counter_data[i]);
+        }
+      }
+      printf("(%d,%d)",counter_init[i]&0x7FFFFFFF, counter_final[i]&0x7FFFFFFF);
+      if (i != num_counter-1) printf(",");
+      else                    printf(".");
+    }
+
+    printf("\r\n");
+  }
+}
