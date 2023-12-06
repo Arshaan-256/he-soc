@@ -326,6 +326,7 @@ module host_domain
 
   // The PMU only works with 32-bit AXI4-Lite port.
   pmu_top #(
+    .NUM_PORT         ( 5                             ),
     .NUM_COUNTER      ( PMU_NUM_COUNTER               ),
     .DEBUG_START_ADDR ( ariane_soc::DebugBase         ),
     .DEBUG_LENGTH     ( ariane_soc::DebugLength       ),
