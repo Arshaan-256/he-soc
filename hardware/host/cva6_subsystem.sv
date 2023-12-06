@@ -468,8 +468,8 @@ module cva6_subsystem
     .AXI_DATA_WIDTH     ( AXI_DATA_WIDTH           ),
     .AXI_ID_WIDTH       ( ariane_soc::IdWidthSlave ),
     .AXI_USER_WIDTH     ( AXI_USER_WIDTH           ),
-    .AXI_MAX_READ_TXNS  ( 8                        ),
-    .AXI_MAX_WRITE_TXNS ( 8                        ),
+    .AXI_MAX_READ_TXNS  ( 1                        ),
+    .AXI_MAX_WRITE_TXNS ( 1                        ),
     .RISCV_WORD_WIDTH   ( 64                       )
   ) i_axi_riscv_atomicsl2 (
     .clk_i,
