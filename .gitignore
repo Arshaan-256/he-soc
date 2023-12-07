@@ -21,6 +21,7 @@ hardware/Bender.local
 hardware/work
 hardware/hyperram*.slm
 hardware/*.riscv
+hardware/fpga/alsaqr/*.str
 hardware/fpga/alsaqr/tcl/generated
 hardware/fpga/alsaqr/tcl/ips/*/ip
 hardware/fpga/alsaqr/*.gen
