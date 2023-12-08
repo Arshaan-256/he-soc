@@ -331,7 +331,12 @@ module host_domain
     .DEBUG_START_ADDR ( ariane_soc::DebugBase         ),
     .DEBUG_LENGTH     ( ariane_soc::DebugLength       ),
     .lite_req_t       ( ariane_axi_soc::req_lite_t    ),
-    .lite_resp_t      ( ariane_axi_soc::resp_lite_t   )
+    .lite_resp_t      ( ariane_axi_soc::resp_lite_t   ),
+    .aw_chan_lite_t   ( ariane_axi_soc::aw_chan_lite_t),
+    .w_chan_lite_t    ( ariane_axi_soc::w_chan_lite_t ),
+    .b_chan_lite_t    ( ariane_axi_soc::b_chan_lite_t ),
+    .ar_chan_lite_t   ( ariane_axi_soc::ar_chan_lite_t),
+    .r_chan_lite_t    ( ariane_axi_soc::r_chan_lite_t )
   ) i_pmu_top (
     .clk_i            ( s_soc_clk                     ),
     .rst_ni           ( s_synch_soc_rst               ),
