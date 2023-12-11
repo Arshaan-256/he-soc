@@ -163,7 +163,7 @@ int main(int argc, char const *argv[]) {
     write_32b_regs(EVENT_SEL_BASE_ADDR, 4, event_sel, COUNTER_BUNDLE_SIZE);
     write_32b_regs(EVENT_INFO_BASE_ADDR, 4, event_info, COUNTER_BUNDLE_SIZE);
     uint32_t print_info[] = {-1,0,-1,2};
-    mem_sweep_two_cases(4, print_info, JUMP_CUA);
+    mem_sweep_two_cases(4, print_info);
 
     printf("CVA6-0 Over, errors: %0d!\r\n", error_count);
 
