@@ -681,6 +681,7 @@ uint32_t test_case_study_without_debug (
     0xcf2c03,
     0x10f2c83,
     0x14f2d03,
+    0x100093,
     0x113,
     0x193,
     0x18207,
@@ -689,12 +690,28 @@ uint32_t test_case_study_without_debug (
     0x520233,
     0x118193,
     0x18387,
+    0x19007,
     0x118193,
     0x18407,
+    0x19007,
+    0x8383b3,
+    0x18f2483,
+    0x1cf2403,
     0x838433,
-    0x24454b3,
-    0x9e34b3,
-    0x100093,
+    0x747463,
+    0x148493,
+    0x9f2c23,
+    0x8f2e23,
+    0x24e0533,
+    0x24e35b3,
+    0x24d8833,
+    0x24d88b3,
+    0x95ea63,
+    0x959463,
+    0x856663,
+    0x493,
+    0x463,
+    0x100493,
     0x110113,
     0x118193,
     0x18507,
@@ -706,15 +723,38 @@ uint32_t test_case_study_without_debug (
     0x18687,
     0x40b50533,
     0x40d60633,
-    0x37507b3,
-    0x3858733,
-    0xe787b3,
-    0x3960733,
-    0xe787b3,
-    0x3a68733,
-    0xe787b3,
-    0x24d8833,
-    0xf838b3,
+    0x3750233,
+    0x37532b3,
+    0x3858333,
+    0x385b3b3,
+    0x7282b3,
+    0x620233,
+    0x627463,
+    0x128293,
+    0x458ee63,
+    0x589463,
+    0x4486a63,
+    0x3960333,
+    0x39633b3,
+    0x7282b3,
+    0x620233,
+    0x627463,
+    0x128293,
+    0x258ec63,
+    0x589463,
+    0x2486863,
+    0x3960333,
+    0x39633b3,
+    0x7282b3,
+    0x620233,
+    0x627463,
+    0x128293,
+    0x58ea63,
+    0x589463,
+    0x486663,
+    0x893,
+    0x463,
+    0x100893,
     0x2099b3,
     0x13a7ab3,
     0x2adab3,
@@ -725,18 +765,18 @@ uint32_t test_case_study_without_debug (
     0x154fb33,
     0x11b7b33,
     0x1b0863,
-    0xf9f144e3,
-    0x1f2e23,
-    0xf40004e3,
-    0x18f2303,
-    0x69e333,
-    0x6f2c23,
+    0xf3f146e3,
+    0x21f2223,
+    0xea000ae3,
+    0x33,
+    0x33,
+    0x34f2023,
     0x33,
     0x13a6a33,
     0xfe0000e3,
     0xfff9c993,
     0x13a7a33,
-    0x14f2c23,
+    0x34f2023,
     0xfc0008e3};
 
   uint32_t dspm_val[] = {
@@ -745,7 +785,9 @@ uint32_t test_case_study_without_debug (
     60,   // Read-hit delay on CUA from the interfering cores
     80,   // Read-miss delay on CUA from the interfering cores.
     100,  // Write-hit delay on CUA from the interfering cores.  
-    200   // Write-miss delay on CUA from the interfering cores.
+    200,  // Write-miss delay on CUA from the interfering cores.
+    0,    // Initial CUA latency value, upper 32-bits.
+    0     // Initial CUA latency value, lower 32-bits.
   };
 
   uint32_t N_TEST = 10;
@@ -792,7 +834,7 @@ uint32_t test_case_study_without_debug (
 
   for (uint32_t i=0; i<N_TEST; i++) {
     if (DEBUG >= 1)
-      printf("Writing case 1 counter values!\n");
+      printf("Writing case %d counter values!\n", i);
     write_32b_regs(counter_base_addr, 16, test_cases[i], counter_bundle_size);
     
     if (DEBUG >= 1)
@@ -800,12 +842,12 @@ uint32_t test_case_study_without_debug (
     write_32b(pmc_status_base_addr, 0);
 
     while (1) {
-      uint read_target = read_32b(dspm_base_addr + 0x1c);
+      uint read_target = read_32b(dspm_base_addr + 0x24);
       if (read_target == 1)
         break;
     }
 
-    uint32_t result = read_32b(dspm_base_addr + 0x18);
+    uint32_t result = read_32b(dspm_base_addr + 0x20);
     printf("Result %d: %d, it should be %d.\n", i+1, result, golden_results[i]);
 
     if (golden_results[i] != result) {
@@ -817,6 +859,8 @@ uint32_t test_case_study_without_debug (
     write_32b(pmc_status_base_addr, 1);
     write_32b(dspm_base_addr + 0x18, 0);
     write_32b(dspm_base_addr + 0x1c, 0);
+    write_32b(dspm_base_addr + 0x20, 0);
+    write_32b(dspm_base_addr + 0x24, 0);
   }
 
   return error_count;
