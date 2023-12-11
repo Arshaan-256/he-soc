@@ -323,7 +323,7 @@ module host_domain
     .e_out              ( spu_out[ariane_soc::SPU_Memory] )
   );
 
-    // The PMU only works with 32-bit AXI4-Lite port.
+  // The PMU only works with 32-bit AXI4-Lite port.
   pmu_top #(
     .NUM_PORT         ( 5                             ),
     .NUM_COUNTER      ( PMU_NUM_COUNTER               ),

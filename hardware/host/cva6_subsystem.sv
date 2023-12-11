@@ -559,7 +559,7 @@ module cva6_subsystem
                                          MaxMstTrans: ariane_soc::NB_PERIPHERALS,
                                          MaxSlvTrans: ariane_soc::NrSlaves,
                                          FallThrough: 1'b0,        
-                                         LatencyMode: axi_pkg::CUT_SLV_AX, // If you cut anything, you might want to remove the soc2cluster_cut.
+                                         LatencyMode: axi_pkg::CUT_ALL_PORTS, // If you cut anything, you might want to remove the soc2cluster_cut.
                                          PipelineStages: 32'd0,
                                          AxiIdWidthSlvPorts: ariane_soc::IdWidth,
                                          AxiIdUsedSlvPorts: ariane_soc::IdWidth,
