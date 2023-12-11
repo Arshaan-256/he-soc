@@ -1,4 +1,4 @@
-void mem_sweep_all_sizes (uint32_t num_counter, uint32_t *print_info, ) {
+void mem_sweep_all_sizes (uint32_t num_counter, uint32_t *print_info, uint32_t JUMP_CUA) {
   // For testing write, we need to be careful so as to not overwrite the program.
   // This is why the EVAL_LEN is restricted to 37 (4MB).
   uint32_t EVAL_LEN = 37;
@@ -142,10 +142,11 @@ void mem_sweep_all_sizes (uint32_t num_counter, uint32_t *print_info, ) {
     }
 }
 
-void mem_sweep_two_cases (uint32_t num_counter, uint32_t *print_info) {
+void mem_sweep_two_cases (uint32_t num_counter, uint32_t *print_info, uint32_t JUMP_CUA) {
     // LLC hit:  40 KB
     // LLC miss: 2048 KB
-    int eval_array[] = {40960, 262144};
+    uint32_t EVAL_LEN = 2;
+    uint32_t eval_array[] = {40960, 262144};
 
     volatile uint64_t *array = (uint64_t*) 0x83000000;
 

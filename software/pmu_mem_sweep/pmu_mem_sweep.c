@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include "utils.h"
 #include "pmu_defines.h"
-#include "pmu_mem_sweep.c"
+#include "pmu_test_func.c"
+#include "pmu_mem_sweep_func.c"
 
 /// The CUA will always miss in the L1 but after one run of the loop, it will never miss in the LLC.
 
@@ -143,6 +144,11 @@ int main(int argc, char const *argv[]) {
                              LLC_WR_RES_CORE_0,   // llc read response by core 0
                              MEM_WR_REQ_CORE_0,   // mem read request by core 0
                              MEM_WR_RES_CORE_0};  // mem read response by core 0
+    #else
+    uint32_t event_sel[]  = {0x000000,
+                             0x000000,
+                             0x000000,
+                             0x000000};
     #endif
 
     // this doesn't change
@@ -154,7 +160,7 @@ int main(int argc, char const *argv[]) {
     write_32b_regs(EVENT_SEL_BASE_ADDR, 4, event_sel, COUNTER_BUNDLE_SIZE);
     write_32b_regs(EVENT_INFO_BASE_ADDR, 4, event_info, COUNTER_BUNDLE_SIZE);
     uint32_t print_info[] = {-1,0,-1,2};
-    test_cache2(4, print_info);
+    mem_sweep_two_cases(4, print_info, JUMP_CUA);
 
     printf("CVA6-0 Over, errors: %0d!\r\n", error_count);
 
