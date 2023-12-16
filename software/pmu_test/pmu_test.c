@@ -5,16 +5,7 @@
 #include "pmu_test_func.c"
 
 // The CUA will always miss in the L1 but after one run of the loop, it will never miss in the LLC.
-
 #define NUM_NON_CUA 3
-
-// #define RD_WITH_RD
-#define WR_WITH_WR
-// #define RD_WITH_WR
-// #define WR_WITH_RD
-
-// #define RD_ONLY
-// #define WR_ONLY
 
 #ifndef TESTS_AUTO
   #define JUMP_CUA        8    // multiply by 8 for bytes
@@ -26,27 +17,8 @@
   #define START_NONCUA    0
 #endif
 
-# ifdef RD_ONLY
-  #define CUA_RD
-#elif defined(WR_ONLY)
-  #define CUA_WR  
-#elif defined(RD_WITH_RD)
-  #define CUA_RD 
-  #define INTF_RD
-#elif defined(WR_WITH_WR)
-  #define CUA_WR
-  #define INTF_WR 
-#elif defined(RD_WITHLY)
-  #define CUA_RD
-#elif defined(WR_WITHLY)
-  #define CUA_WR
-#elif defined(RD_WITH_WR)
-  #define CUA_RD
-  #define INTF_WR 
-#elif defined(WR_WITH_RD)
-  #define CUA_WR
-  #define INTF_RD 
-#endif
+
+#define INTF_RD
 
 void test_cache(uint32_t num_counter, uint32_t *print_info);
 void test_cache2(uint32_t num_counter, uint32_t *print_info);
@@ -143,32 +115,60 @@ int main(int argc, char const *argv[]) {
     #elif defined(WR_WITH_RD)
       printf("Write on read contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #endif
-    
-    #if defined(CUA_RD)
-    // this is for when cua is making reads
-    uint32_t event_sel[]  = {LLC_RD_REQ_CORE_0,   // llc read request by core 0
-                             LLC_RD_RES_CORE_0,   // llc read response by core 0
-                             MEM_RD_REQ_CORE_0,   // mem read request by core 0
-                             MEM_RD_RES_CORE_0};  // mem read response by core 0
-    
-    #elif defined(CUA_WR)
-    // this is for when cua is making writes
-    uint32_t event_sel[]  = {LLC_WR_REQ_CORE_0,   // llc read request by core 0
-                             LLC_WR_RES_CORE_0,   // llc read response by core 0
-                             MEM_WR_REQ_CORE_0,   // mem read request by core 0
-                             MEM_WR_RES_CORE_0};  // mem read response by core 0
-    #endif
+  
+    uint32_t num_counter = 16;
+                            // CORE 0
+    uint32_t event_sel[] = {LLC_RD_REQ_CORE_0,
+                            LLC_WR_REQ_CORE_0,
+                            LLC_RD_RES_CORE_0,
+                            LLC_WR_RES_CORE_0,
+                            // CORE 1
+                            LLC_RD_REQ_CORE_1,
+                            MEM_RD_REQ_CORE_1,
+                            LLC_WR_REQ_CORE_1,
+                            MEM_WR_REQ_CORE_1,
+                            // CORE 2
+                            LLC_RD_REQ_CORE_2,
+                            MEM_RD_REQ_CORE_2,
+                            LLC_WR_REQ_CORE_2,
+                            MEM_WR_REQ_CORE_2,
+                            // CORE 3
+                            LLC_RD_REQ_CORE_3,
+                            MEM_RD_REQ_CORE_3,
+                            LLC_WR_REQ_CORE_3,
+                            MEM_WR_REQ_CORE_3,
+                            // EXTRA INFO
+                            LLC_RD_RES_CORE_0,
+                            LLC_WR_RES_CORE_0};
 
-    // this doesn't change
+                             // CORE 0
     uint32_t event_info[] = {0x000000,
-                             ADD_RESP_LAT,
                              0x000000,
-                             ADD_RESP_LAT};
+                             ADD_RESP_LAT,
+                             ADD_RESP_LAT,
+                             // CORE 1
+                             0x000000,
+                             0x000000,
+                             0x000000,
+                             0x000000,
+                             // CORE 2
+                             0x000000,
+                             0x000000,
+                             0x000000,
+                             0x000000,
+                             //CORE 3
+                             0x000000,
+                             0x000000,
+                             0x000000,
+                             0x000000,
+                             // EXTRA INFO
+                             ADD_RESP_LAT,
+                             ADD_RESP_LAT};                      
 
-    write_32b_regs(EVENT_SEL_BASE_ADDR, 4, event_sel, COUNTER_BUNDLE_SIZE);
-    write_32b_regs(EVENT_INFO_BASE_ADDR, 4, event_info, COUNTER_BUNDLE_SIZE);
-    uint32_t print_info[] = {-1,0,-1,2};
-    test_cache2(4, print_info);
+    write_32b_regs(EVENT_SEL_BASE_ADDR, num_counter, event_sel, COUNTER_BUNDLE_SIZE);
+    write_32b_regs(EVENT_INFO_BASE_ADDR, num_counter, event_info, COUNTER_BUNDLE_SIZE);
+    // uint32_t print_info[] = {-1,0,-1,2};
+    // test_cache2(4, print_info);
 
     // pmu_halt_core(
     //             ISPM_BASE_ADDR,
@@ -195,7 +195,7 @@ int main(int argc, char const *argv[]) {
     //                  COUNTER_BUNDLE_SIZE,
     //                  4,
     //                  2);
-
+    while (1);
 
     printf("CVA6-0 Over, errors: %0d!\r\n", error_count);
 
