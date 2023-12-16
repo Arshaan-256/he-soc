@@ -861,6 +861,21 @@ module cva6_subsystem
   // --------------------
   // SPUs on cores output
   // --------------------
+
+  localparam N_ADDR_RULES = 2;
+  ariane_soc::addr_map_rule_t [N_ADDR_RULES-1:0]   spu_core_addr_map;
+  assign spu_core_addr_map[0] = '{
+        idx: 0,
+        start_addr: ariane_soc::DebugBase+0x10000,
+        end_addr:   ariane_soc::HYAXIBase
+  };
+
+  assign spu_core_addr_map[1] = '{
+        idx: 1,
+        start_addr: ariane_soc::HYAXIBase,
+        end_addr:   ariane_soc::HYAXIBase + ariane_soc::HYAXILength
+  };
+
   spu_top #(
     // Static configuration parameters of the cache.
     .SetAssociativity   ( ariane_soc::LLC_SET_ASSOC   ),
@@ -871,12 +886,16 @@ module cva6_subsystem
     .IdWidthSlaves      ( ariane_soc::IdWidthSlave+ 1 ),
     .AddrWidth          ( AXI_ADDRESS_WIDTH           ),
     .DataWidth          ( AXI_DATA_WIDTH              ),
+    // Address Indexing
+    .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
+    .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
     .CAM_DEPTH          (  3                          ),
     .FIFO_DEPTH         (  3                          )
   ) i_spu_core_0_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
+    .addr_map_i         ( spu_core_addr_map           ),
     .spu_slv            ( slave_to_spu[ariane_soc::Core_0-4] ),
     .spu_mst            ( slave[ariane_soc::Core_0]   ),
     .e_out              ( spu_core_0_out              )
@@ -892,12 +911,16 @@ module cva6_subsystem
     .IdWidthSlaves      ( ariane_soc::IdWidthSlave+ 1 ),
     .AddrWidth          ( AXI_ADDRESS_WIDTH           ),
     .DataWidth          ( AXI_DATA_WIDTH              ),
+    // Address Indexing
+    .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
+    .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
     .CAM_DEPTH          (  3                          ),
     .FIFO_DEPTH         (  3                          )
   ) i_spu_core_1_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
+    .addr_map_i         ( spu_core_addr_map           ),
     .spu_slv            ( slave_to_spu[ariane_soc::Core_1-4] ),
     .spu_mst            ( slave[ariane_soc::Core_1]   ),
     .e_out              ( spu_core_1_out              )
@@ -913,12 +936,16 @@ module cva6_subsystem
     .IdWidthSlaves      ( ariane_soc::IdWidthSlave+ 1 ),
     .AddrWidth          ( AXI_ADDRESS_WIDTH           ),
     .DataWidth          ( AXI_DATA_WIDTH              ),
+    // Address Indexing
+    .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
+    .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
     .CAM_DEPTH          (  3                          ),
     .FIFO_DEPTH         (  3                          )
   ) i_spu_core_2_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
+    .addr_map_i         ( spu_core_addr_map           ),
     .spu_slv            ( slave_to_spu[ariane_soc::Core_2-4] ),
     .spu_mst            ( slave[ariane_soc::Core_2]   ),
     .e_out              ( spu_core_2_out              )
@@ -934,12 +961,16 @@ module cva6_subsystem
     .IdWidthSlaves      ( ariane_soc::IdWidthSlave+ 1 ),
     .AddrWidth          ( AXI_ADDRESS_WIDTH           ),
     .DataWidth          ( AXI_DATA_WIDTH              ),
+    // Address Indexing
+    .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
+    .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
     .CAM_DEPTH          (  3                          ),
     .FIFO_DEPTH         (  3                          )
   ) i_spu_core_3_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
+    .addr_map_i         ( spu_core_addr_map           ),
     .spu_slv            ( slave_to_spu[ariane_soc::Core_3-4] ),
     .spu_mst            ( slave[ariane_soc::Core_3]   ),
     .e_out              ( spu_core_3_out              )
