@@ -866,7 +866,7 @@ module cva6_subsystem
   ariane_soc::addr_map_rule_t [N_ADDR_RULES-1:0]   spu_core_addr_map;
   assign spu_core_addr_map[0] = '{
         idx: 0,
-        start_addr: ariane_soc::DebugBase+0x10000,
+        start_addr: ariane_soc::DebugBase,
         end_addr:   ariane_soc::HYAXIBase
   };
 
