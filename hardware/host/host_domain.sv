@@ -300,8 +300,21 @@ module host_domain
   // For size in Bytes, 11-bits are enough (8 for AXI_LENGTH and 3 for AXI_SIZE).
   // For size in cachelines, 6-bits are enough.
 
+  localparam N_ADDR_RULES = 2;
+  ariane_soc::addr_map_rule_t [N_ADDR_RULES-1:0]   spu_mem_addr_map;
+  assign spu_mem_addr_map[0] = '{
+        idx: 0,
+        start_addr: ariane_soc::DebugBase,
+        end_addr:   ariane_soc::HYAXIBase
+  };
+
+  assign spu_mem_addr_map[1] = '{
+        idx: 1,
+        start_addr: ariane_soc::HYAXIBase,
+        end_addr:   ariane_soc::HYAXIBase + ariane_soc::HYAXILength
+  };
+
   pmu_pkg::pmu_event_t [ariane_soc::NumCores:0] spu_out;
-  // PMU_INTF spu_llc_out ();
 
   spu_top #(
     // Static configuration parameters of the cache.
@@ -313,12 +326,16 @@ module host_domain
     .IdWidthSlaves      ( ariane_soc::IdWidthSlave+ 1 ),
     .AddrWidth          ( AXI_ADDRESS_WIDTH           ),
     .DataWidth          ( AXI_DATA_WIDTH              ),
+    // Address Indexing
+    .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
+    .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
     .CAM_DEPTH          ( 17                          ),
     .FIFO_DEPTH         (  8                          )
   ) i_spu_llc_mem (
     .clk_i              ( s_soc_clk                   ),
     .rst_ni             ( s_synch_soc_rst             ),
+    .addr_map_i         ( spu_mem_addr_map            ),
     .spu_slv            ( mem_axi_bus_spu_o_bus       ),
     .spu_mst            ( mem_axi_bus                 ),
     .e_out              ( spu_out[ariane_soc::SPU_Memory] )
@@ -535,7 +552,6 @@ module host_domain
     .cluster_axi_slave    ( cluster_axi_slave    ),
 
     `ifdef PMU_BLOCK
-    // PMU_INTF
     .spu_core_0_out       ( spu_out[ariane_soc::SPU_Core_0] ),
     .spu_core_1_out       ( spu_out[ariane_soc::SPU_Core_1] ),
     .spu_core_2_out       ( spu_out[ariane_soc::SPU_Core_2] ),
