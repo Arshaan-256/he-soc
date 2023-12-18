@@ -136,5 +136,6 @@
 /// **********************************************************************
 /// Note: The following define only works if the response (X_RES_X) events are selected
 //        using the corresponding Event Select Register.
-#define ADD_RESP_LAT    0x8001E0
-#define OVERFLOW_EN     0x1000000
+#define ADD_RESP_LAT   0x8001E0
+#define ADD_MEM_ONLY   0x808E10
+#define OVERFLOW_EN    0x1000000

@@ -1071,4 +1071,4 @@ uint32_t test_case_study_with_debug (
   }
 
   return error_count;
-}    
+}

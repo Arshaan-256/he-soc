@@ -116,57 +116,74 @@ int main(int argc, char const *argv[]) {
       printf("Write on read contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #endif
   
-    uint32_t num_counter = 16;
+    uint32_t num_counter = 18;
                             // CORE 0
-    uint32_t event_sel[] = {LLC_RD_REQ_CORE_0,
-                            LLC_WR_REQ_CORE_0,
-                            LLC_RD_RES_CORE_0,
-                            LLC_WR_RES_CORE_0,
+    uint32_t event_sel[] = {LLC_RD_REQ_CORE_0,    // 0
+                            LLC_WR_REQ_CORE_0,    // 1
+                            LLC_RD_RES_CORE_0,    // 2
+                            LLC_WR_RES_CORE_0,    // 3
                             // CORE 1
-                            LLC_RD_REQ_CORE_1,
-                            MEM_RD_REQ_CORE_1,
-                            LLC_WR_REQ_CORE_1,
-                            MEM_WR_REQ_CORE_1,
+                            LLC_RD_REQ_CORE_1,    // 4
+                            MEM_RD_REQ_CORE_1,    // 5
+                            LLC_WR_REQ_CORE_1,    // 6
+                            MEM_WR_REQ_CORE_1,    // 7
                             // CORE 2
-                            LLC_RD_REQ_CORE_2,
-                            MEM_RD_REQ_CORE_2,
-                            LLC_WR_REQ_CORE_2,
-                            MEM_WR_REQ_CORE_2,
+                            LLC_RD_REQ_CORE_2,    // 8
+                            MEM_RD_REQ_CORE_2,    // 9
+                            LLC_WR_REQ_CORE_2,    // 10
+                            MEM_WR_REQ_CORE_2,    // 11
                             // CORE 3
-                            LLC_RD_REQ_CORE_3,
-                            MEM_RD_REQ_CORE_3,
-                            LLC_WR_REQ_CORE_3,
-                            MEM_WR_REQ_CORE_3,
+                            LLC_RD_REQ_CORE_3,    // 12
+                            MEM_RD_REQ_CORE_3,    // 13
+                            LLC_WR_REQ_CORE_3,    // 14
+                            MEM_WR_REQ_CORE_3,    // 15
                             // EXTRA INFO
-                            LLC_RD_RES_CORE_0,
-                            LLC_WR_RES_CORE_0};
+                            LLC_RD_RES_CORE_0,    // 16
+                            LLC_WR_RES_CORE_0};   // 17
 
                              // CORE 0
-    uint32_t event_info[] = {0x000000,
-                             0x000000,
+    uint32_t event_info[] = {ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,
                              ADD_RESP_LAT,
                              ADD_RESP_LAT,
                              // CORE 1
-                             0x000000,
-                             0x000000,
-                             0x000000,
-                             0x000000,
+                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,
                              // CORE 2
-                             0x000000,
-                             0x000000,
-                             0x000000,
-                             0x000000,
+                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,
                              //CORE 3
-                             0x000000,
-                             0x000000,
-                             0x000000,
-                             0x000000,
+                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,
                              // EXTRA INFO
                              ADD_RESP_LAT,
-                             ADD_RESP_LAT};                      
+                             ADD_RESP_LAT};
 
     write_32b_regs(EVENT_SEL_BASE_ADDR, num_counter, event_sel, COUNTER_BUNDLE_SIZE);
     write_32b_regs(EVENT_INFO_BASE_ADDR, num_counter, event_info, COUNTER_BUNDLE_SIZE);
+
+    // error_count = run_pmu_core_test_suite (
+    //                     ISPM_BASE_ADDR,
+    //                     COUNTER_BASE_ADDR,
+    //                     DSPM_BASE_ADDR,
+    //                     PMC_STATUS_ADDR,
+    //                     COUNTER_BUNDLE_SIZE,
+    //                     32,
+    //                     20,
+    //                     2);
+    uint32_t ARRAY_LEN = 80000;
+    for (uint64_t repeat=0; repeat<100; repeat++) {
+      for (uint64_t i=0; i < ARRAY_LEN; i++) {
+        array[i] = (array[i] % ARRAY_LEN)*(array[i] % ARRAY_LEN) + repeat;
+      }
+    }
+
     // uint32_t print_info[] = {-1,0,-1,2};
     // test_cache2(4, print_info);
 
@@ -195,8 +212,7 @@ int main(int argc, char const *argv[]) {
     //                  COUNTER_BUNDLE_SIZE,
     //                  4,
     //                  2);
-    while (1);
-
+    // while (1);
     printf("CVA6-0 Over, errors: %0d!\r\n", error_count);
 
     end_test(mhartid);
