@@ -562,7 +562,7 @@ uint32_t test_pmu_debug_func (
     0x33,         // The first instruction to the core is discarded so it must be NOP.
     0x400093,     // addi x1,x0,num_counter
     0x1400313,    // addi x6,x0,wait_before_resuming
-    0x137,        
+    0x137,
     0x20010113,
     0x213,
     0x293,
