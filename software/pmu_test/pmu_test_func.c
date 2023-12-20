@@ -927,6 +927,7 @@ uint32_t test_case_study_with_debug (
     0x400f93,     // 1: addi x31, x0, num_intf_core
     0xf37,        // 2: lui x30, (dspm_base_addr >> 12)
     0xf0f13,      // 3: addi x30, x30, (dspm_base_addr & 0xFFF)
+    0x28f0913,
     0xeb7,
     0x200e8e93,
     0x100093,
@@ -1025,7 +1026,7 @@ uint32_t test_case_study_with_debug (
     0x21f2223,
     0xea0006e3,
     0x13a6a33,
-    0x34f2023,
+    0x2ea023,
     0x10404237,
     0x22283,
     0x422303,
@@ -1038,7 +1039,7 @@ uint32_t test_case_study_with_debug (
     0xfc0004e3,
     0xfff9c993,
     0x13a7a33,
-    0x34f2023,
+    0x2ea423,
     0x10404237,
     0x22283,
     0x422303,
