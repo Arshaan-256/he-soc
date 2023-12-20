@@ -214,7 +214,7 @@ int main(int argc, char const *argv[]) {
       0x18f2403,
       0x1cf2483,
       0x838433,
-      0x747863,
+      0x747463,
       0x148493,
       0x8f2c23,
       0x9f2e23,
@@ -276,7 +276,7 @@ int main(int argc, char const *argv[]) {
       0x2adab3,
       0x12c313,
       0x6afb33,
-      0x41b0a63,
+      0x41b0863,
       0x1aca93,
       0x154fb33,
       0x5b7b33,
@@ -287,30 +287,28 @@ int main(int argc, char const *argv[]) {
       0x13a6a33,
       0x34f2023,
       0x10404237,
-      0x20213,
       0x22283,
       0x422303,
       0x1009213,
       0x220233,
-      0x92203,
-      0x492283,
-      0x892303,
+      0x492023,
+      0x592223,
+      0x692423,
       0xc90913,
-      0xfc0002e3,
+      0xfc0004e3,
       0xfff9c993,
       0x13a7a33,
       0x34f2023,
       0x10404237,
-      0x20213,
       0x22283,
       0x422303,
       0x1109213,
       0x220233,
-      0x92203,
-      0x492283,
-      0x892303,
+      0x492023,
+      0x592223,
+      0x692423,
       0xc90913,
-      0xf80006e3};
+      0xf8000ae3};
 
     // 100%
     uint32_t dspm_val[] = {
@@ -323,6 +321,9 @@ int main(int argc, char const *argv[]) {
       0,    // Initial CUA latency value, upper 32-bits.
       0     // Initial CUA latency value, lower 32-bits.
     };
+
+    write_32b(PERIOD_ADDR,0xFFFFFFFF);
+    write_32b(PERIOD_ADDR + 0x4,0xFFFFFFFF);
 
     printf("Test Parameters\r\n");
     printf("Average latency threshold: %0d\r\n", dspm_val[0]);
@@ -362,9 +363,21 @@ int main(int argc, char const *argv[]) {
     // }
 
     while (1) {
-      uint read_target = read_32b(dspm_base_addr + 0x24);
+      uint read_target = read_32b(DSPM_BASE_ADDR + 0x24);
       if (read_target == 1)
         break;
+    }
+
+    for (uint32_t i=0; i<1000; i++) {
+      uint32_t code       = read_32b(DSPM_BASE_ADDR + 0x28 + i*0xc);
+      uint32_t time_lower = read_32b(DSPM_BASE_ADDR + 0x2c + i*0xc);
+      uint32_t time_upper = read_32b(DSPM_BASE_ADDR + 0x30 + i*0xc);
+
+      printf("Data %0d: %0d: %x_%x", i, code, time_upper, time_lower);
+
+      if (code == 0) {
+        break;
+      }
     }
 
     printf("CVA6-0 Over, errors: %0d!\r\n", error_count);
