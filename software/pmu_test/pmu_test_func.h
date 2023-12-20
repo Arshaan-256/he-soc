@@ -163,8 +163,12 @@ uint32_t test_case_study_with_debug (
               uint32_t pmc_status_base_addr, 
               uint32_t counter_base_addr,
               uint32_t counter_bundle_size,
+<<<<<<< HEAD
               uint32_t period_base_addr,
               uint32_t num_intf_core,
+=======
+              uint32_t num_core,
+>>>>>>> 9ffa5910248ed3ebdfb2c40c709267251fc595a0
               uint32_t DEBUG);
 
 uint32_t test_case_study_without_debug (
@@ -173,7 +177,11 @@ uint32_t test_case_study_without_debug (
               uint32_t pmc_status_base_addr, 
               uint32_t counter_base_addr,
               uint32_t counter_bundle_size,
+<<<<<<< HEAD
               uint32_t period_base_addr,
               uint32_t num_intf_core,
               uint32_t PRINT_TRACE,
+=======
+              uint32_t num_core,
+>>>>>>> 9ffa5910248ed3ebdfb2c40c709267251fc595a0
               uint32_t DEBUG);               
