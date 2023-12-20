@@ -177,13 +177,7 @@ package ariane_soc;
   localparam LLC_NUM_LINES  = 32'd1024;
   localparam LLC_NUM_BLOCKS = 32'd8;
 
-  // PMU Defines
-  // typedef enum int unsigned {
-  //   SPU_LLC_Out = 1,
-  //   SPU_LLC_In  = 0
-  // } spu_masters_t;
-
-    typedef enum int unsigned {
+  typedef enum int unsigned {
     SPU_Core_3 = 4,
     SPU_Core_2 = 3,
     SPU_Core_1 = 2,
