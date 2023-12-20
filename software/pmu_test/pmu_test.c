@@ -116,7 +116,8 @@ int main(int argc, char const *argv[]) {
       printf("Write on read contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #endif
   
-    uint32_t num_counter = 18;
+
+    uint32_t num_counter = 24;
                             // CORE 0
     uint32_t event_sel[] = {LLC_RD_REQ_CORE_0,    // 0
                             LLC_WR_REQ_CORE_0,    // 1
@@ -139,80 +140,233 @@ int main(int argc, char const *argv[]) {
                             MEM_WR_REQ_CORE_3,    // 15
                             // EXTRA INFO
                             LLC_RD_RES_CORE_0,    // 16
-                            LLC_WR_RES_CORE_0};   // 17
+                            LLC_WR_RES_CORE_0,    // 17
+                            LLC_RD_RES_CORE_1,    // 18
+                            LLC_WR_RES_CORE_1,    // 19  
+                            LLC_RD_RES_CORE_2,    // 20 
+                            LLC_WR_RES_CORE_2,    // 21  
+                            LLC_RD_RES_CORE_3,    // 22  
+                            LLC_WR_RES_CORE_3};   // 23
 
                              // CORE 0
-    uint32_t event_info[] = {ADD_MEM_ONLY,
-                             ADD_MEM_ONLY,
-                             ADD_RESP_LAT,
-                             ADD_RESP_LAT,
+    uint32_t event_info[] = {ADD_MEM_ONLY,    // 0
+                             ADD_MEM_ONLY,    // 1
+                             ADD_RESP_LAT,    // 2
+                             ADD_RESP_LAT,    // 3
                              // CORE 1
-                             ADD_MEM_ONLY,
-                             ADD_MEM_ONLY,
-                             ADD_MEM_ONLY,
-                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,    // 4
+                             ADD_MEM_ONLY,    // 5
+                             ADD_MEM_ONLY,    // 6
+                             ADD_MEM_ONLY,    // 7
                              // CORE 2
-                             ADD_MEM_ONLY,
-                             ADD_MEM_ONLY,
-                             ADD_MEM_ONLY,
-                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,    // 8
+                             ADD_MEM_ONLY,    // 9
+                             ADD_MEM_ONLY,    // 10
+                             ADD_MEM_ONLY,    // 11
                              //CORE 3
-                             ADD_MEM_ONLY,
-                             ADD_MEM_ONLY,
-                             ADD_MEM_ONLY,
-                             ADD_MEM_ONLY,
+                             ADD_MEM_ONLY,    // 12
+                             ADD_MEM_ONLY,    // 13
+                             ADD_MEM_ONLY,    // 14
+                             ADD_MEM_ONLY,    // 15
                              // EXTRA INFO
-                             ADD_RESP_LAT,
-                             ADD_RESP_LAT};
+                             ADD_RESP_LAT,    // 16
+                             ADD_RESP_LAT,    // 17
+                             ADD_RESP_LAT,    // 18
+                             ADD_RESP_LAT,    // 19
+                             ADD_RESP_LAT,    // 20
+                             ADD_RESP_LAT,    // 21
+                             ADD_RESP_LAT,    // 22
+                             ADD_RESP_LAT};   // 23
 
     write_32b_regs(EVENT_SEL_BASE_ADDR, num_counter, event_sel, COUNTER_BUNDLE_SIZE);
     write_32b_regs(EVENT_INFO_BASE_ADDR, num_counter, event_info, COUNTER_BUNDLE_SIZE);
 
-    // error_count = run_pmu_core_test_suite (
-    //                     ISPM_BASE_ADDR,
-    //                     COUNTER_BASE_ADDR,
-    //                     DSPM_BASE_ADDR,
-    //                     PMC_STATUS_ADDR,
-    //                     COUNTER_BUNDLE_SIZE,
-    //                     32,
-    //                     20,
-    //                     2);
+    uint32_t program[] = {
+      0x33,         // 0: NOP
+      0x400f93,     // 1: addi x31, x0, num_core
+      0xf37,        // 2: lui x30, (dspm_base_addr >> 12)
+      0xf0f13,      // 3: addi x30, x30, (dspm_base_addr & 0xFFF)
+      0x28f0913,
+      0xeb7,
+      0x200e8e93,
+      0x100093,
+      0xf2e03,
+      0x4f2d83,
+      0x8f2b83,
+      0xcf2c03,
+      0x10f2c83,
+      0x14f2d03,
+      0x100093,
+      0xa13,
+      0x113,
+      0x193,
+      0x18207,
+      0x118193,
+      0x18287,
+      0x520233,
+      0x118193,
+      0x18387,
+      0x19007,
+      0x118193,
+      0x18407,
+      0x19007,
+      0x8383b3,
+      0x18f2403,
+      0x1cf2483,
+      0x838433,
+      0x747863,
+      0x148493,
+      0x8f2c23,
+      0x9f2e23,
+      0x24e0533,
+      0x24e35b3,
+      0x24d8833,
+      0x24db8b3,
+      0x95ea63,
+      0x959463,
+      0x856663,
+      0x493,
+      0x463,
+      0x100493,
+      0x110113,
+      0x118193,
+      0x18507,
+      0x118193,
+      0x18587,
+      0x118193,
+      0x18607,
+      0x118193,
+      0x18687,
+      0x40b50533,
+      0x40d60633,
+      0x3750233,
+      0x37532b3,
+      0x3858333,
+      0x385b3b3,
+      0x7282b3,
+      0x620233,
+      0x627463,
+      0x128293,
+      0x458ee63,
+      0x589463,
+      0x4486a63,
+      0x3960333,
+      0x39633b3,
+      0x7282b3,
+      0x620233,
+      0x627463,
+      0x128293,
+      0x258ec63,
+      0x589463,
+      0x2486863,
+      0x3a68333,
+      0x3a6b3b3,
+      0x7282b3,
+      0x620233,
+      0x627463,
+      0x128293,
+      0x58ea63,
+      0x589463,
+      0x486663,
+      0x293,
+      0x463,
+      0x100293,
+      0x2099b3,
+      0x13a7ab3,
+      0x2adab3,
+      0x12c313,
+      0x6afb33,
+      0x41b0a63,
+      0x1aca93,
+      0x154fb33,
+      0x5b7b33,
+      0x1b0863,
+      0xf3f116e3,
+      0x21f2223,
+      0xea0006e3,
+      0x13a6a33,
+      0x34f2023,
+      0x10404237,
+      0x20213,
+      0x22283,
+      0x422303,
+      0x1009213,
+      0x220233,
+      0x92203,
+      0x492283,
+      0x892303,
+      0xc90913,
+      0xfc0002e3,
+      0xfff9c993,
+      0x13a7a33,
+      0x34f2023,
+      0x10404237,
+      0x20213,
+      0x22283,
+      0x422303,
+      0x1109213,
+      0x220233,
+      0x92203,
+      0x492283,
+      0x892303,
+      0xc90913,
+      0xf80006e3};
+
+    // 100%
+    uint32_t dspm_val[] = {
+      22,   // Average latency threshold
+      0,    // Acceptable delay allowed per core
+      11,   // Read-hit delay on CUA from the interfering cores
+      78,   // Read-miss delay on CUA from the interfering cores.
+      89,   // Write-hit delay on CUA from the interfering cores.
+      390,  // Write-miss delay on CUA from the interfering cores.
+      0,    // Initial CUA latency value, upper 32-bits.
+      0     // Initial CUA latency value, lower 32-bits.
+    };
+
+    printf("Test Parameters\r\n");
+    printf("Average latency threshold: %0d\r\n", dspm_val[0]);
+    printf("Acceptable delay allowed per request per core: %0d\r\n", dspm_val[1]);
+    printf("Non-CUA parameters (rh,rm,wh,wm): %0d, %0d, %0d, %0d\r\n", dspm_val[2], dspm_val[3], dspm_val[4], dspm_val[5]);
+
+    uint32_t instruction;
+    uint32_t program_size = sizeof(program) / sizeof(program[0]);
+
+    // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
+    instruction = encodeADDI(31, 0, 3 & 0xFFF, 0);
+    program[1] = instruction;
+    // encodeLUI (uint32_t rd, uint32_t imm)
+    instruction = encodeLUI(30, DSPM_BASE_ADDR >> 12, 0);
+    program[2] = instruction;
+    // encodeADDI (uint32_t rd, uint32_t rs1, uint32_t imm)
+    instruction = encodeADDI(30, 30, DSPM_BASE_ADDR & 0xFFF, 0);
+    program[3] = instruction;
+
+    printf("Setting up PMU core and SPMs.\r\n");
+    write_32b(PMC_STATUS_ADDR, 1);
+    error_count += test_spm(ISPM_BASE_ADDR, program_size, program);
+    error_count += test_spm(DSPM_BASE_ADDR, 8, dspm_val);
+
+    uint32_t test_cases[16] = {2040018, 8000026, 173649635, 172765718, 5359692, 5359692, 0, 0, 5359692, 5359692, 0, 0, 5359692, 5359692, 0, 0};
+    printf("Writing counter values!\n");
+    write_32b_regs(COUNTER_BASE_ADDR, 16, test_cases, COUNTER_BUNDLE_SIZE);
+
+    printf("Start PMU core!\n");
+    write_32b(PMC_STATUS_ADDR, 0);
+
     uint32_t ARRAY_LEN = 80000;
-    for (uint64_t repeat=0; repeat<100; repeat++) {
-      for (uint64_t i=0; i < ARRAY_LEN; i++) {
-        array[i] = (array[i] % ARRAY_LEN)*(array[i] % ARRAY_LEN) + repeat;
-      }
+    // for (uint64_t repeat=0; repeat<100; repeat++) {
+    //   for (uint64_t i=0; i < ARRAY_LEN; i++) {
+    //     array[i] = (array[i] % ARRAY_LEN)*(array[i] % ARRAY_LEN) + repeat;
+    //   }
+    // }
+
+    while (1) {
+      uint read_target = read_32b(dspm_base_addr + 0x24);
+      if (read_target == 1)
+        break;
     }
 
-    // uint32_t print_info[] = {-1,0,-1,2};
-    // test_cache2(4, print_info);
-
-    // pmu_halt_core(
-    //             ISPM_BASE_ADDR,
-    //             PMC_STATUS_ADDR,
-    //             1,
-    //             2
-    // );
-
-    // while (!read_32b(DSPM_BASE_ADDR));
-
-    // printf("Resume the core.");
-    // pmu_resume_core(
-    //             ISPM_BASE_ADDR,
-    //             PMC_STATUS_ADDR,
-    //             1,
-    //             2
-    // );
-
-    // error_count = test_case_study_without_debug (
-    //                  ISPM_BASE_ADDR,
-    //                  DSPM_BASE_ADDR,
-    //                  PMC_STATUS_ADDR, 
-    //                  COUNTER_BASE_ADDR,
-    //                  COUNTER_BUNDLE_SIZE,
-    //                  4,
-    //                  2);
-    // while (1);
     printf("CVA6-0 Over, errors: %0d!\r\n", error_count);
 
     end_test(mhartid);
