@@ -8,14 +8,14 @@
 /// The CUA will always miss in the L1 but after one run of the loop, it will never miss in the LLC.
 
 /// This define controls the number of non-CUA cores that are causing RD / WR contention.
-#define NUM_NON_CUA 3
+#define NUM_NON_CUA 2
 
 /// This define specifies the contention type.
 // #define RD_ONLY
 // #define WR_ONLY
 // #define RD_WITH_RD
 // #define WR_WITH_WR
-// #define RD_WITH_WR
+#define RD_WITH_WR
 // #define WR_WITH_RD
 
 // Array size: 320 kB   (LLC Hits)
@@ -121,17 +121,17 @@ int main(int argc, char const *argv[]) {
     }
     
     #ifdef RD_WITH_RD
-      printf("Read on read contention Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Read with read contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(WR_WITH_WR)
-      printf("Write on write contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Write with write contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(RD_ONLY)
       printf("Only read in CUA, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(WR_ONLY)
       printf("Only write in CUA, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(RD_WITH_WR)
-      printf("Read on write contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Read with write contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(WR_WITH_RD)
-      printf("Write on read contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Write with read contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #endif
     
     #if defined(CUA_RD)
@@ -210,6 +210,9 @@ int main(int argc, char const *argv[]) {
   return 0;
 }
 
+
+// In this function, the CUA sweeps memory range of increasing sizes.
+// One sweep consist of `N_REPEAT` repeat accesses over the entire range.
 void mem_sweep_all_sizes (uint32_t num_counter, uint32_t *print_info) {
   // For testing write, we need to be careful so as to not overwrite the program.
   // This is why the EVAL_LEN is restricted to 37 (4MB).
@@ -253,7 +256,6 @@ void mem_sweep_all_sizes (uint32_t num_counter, uint32_t *print_info) {
                       524288,
                       1048576};
 
-  // uint32_t counter_rval[NUM_COUNTER];
   volatile uint64_t *array = (uint64_t*) 0x83000000;
 
     for (uint32_t a_len = 1; a_len < EVAL_LEN; a_len++) { 
@@ -267,12 +269,18 @@ void mem_sweep_all_sizes (uint32_t num_counter, uint32_t *print_info) {
         uint32_t counter_init[num_counter];
         uint32_t counter_final[num_counter];
 
+        // This define the size of the memory range accessed.
         a_len2 = eval_array[a_len];
-        for (uint32_t i=0; i<num_counter; i++)
-        counter_rst[i] = 0;
+        
+        // Reset the counters.
+        for (uint32_t i=0; i<num_counter; i++) {
+          counter_rst[i] = 0;
+        }
 
         uint32_t N_REPEAT = 100;
 
+        // This is done to prime the cache, so that the cold misses in the first run
+        // affect our numbers.
         for (int a_idx = 0; a_idx < a_len2; a_idx+=JUMP_CUA) {
             #ifdef CUA_RD
                 asm volatile (
@@ -292,10 +300,12 @@ void mem_sweep_all_sizes (uint32_t num_counter, uint32_t *print_info) {
         // Reset all counters.
         write_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_rst, COUNTER_BUNDLE_SIZE);
 
+        // Set up before running the test.
         asm volatile("csrr %0, 0xb04" : "=r" (curr_miss) : );
         read_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_init, COUNTER_BUNDLE_SIZE);
         curr_cycle = read_csr(cycle);
         
+        // This is the actual sweep that will be counted in the results.
         for (int a_repeat = 0; a_repeat < N_REPEAT; a_repeat++){
             for (int a_idx = 0; a_idx < a_len2; a_idx+=JUMP_CUA) {
                 #ifdef CUA_RD
@@ -315,6 +325,7 @@ void mem_sweep_all_sizes (uint32_t num_counter, uint32_t *print_info) {
             }
         }
 
+        // Collect post-test results.
         end_cycle = read_csr(cycle) - curr_cycle;
         read_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_final, COUNTER_BUNDLE_SIZE);
         asm volatile("csrr %0, 0xb04" : "=r" (end_miss) : );
@@ -330,6 +341,7 @@ void mem_sweep_all_sizes (uint32_t num_counter, uint32_t *print_info) {
         // L1 D-cache misses.
         printf("D1-miss:%d,", end_miss-curr_miss);
 
+        // counter_data = counter_final - counter_init
         uint32_t counter_data[31];
         for (uint32_t i=0; i<num_counter; i++) {
         counter_data[i] = (counter_final[i] & 0x7FFFFFFF)-(counter_init[i] & 0x7FFFFFFF); 
@@ -349,13 +361,15 @@ void mem_sweep_all_sizes (uint32_t num_counter, uint32_t *print_info) {
             if (i != num_counter-1) printf(",");
             else                    printf(".");
         }
-
         printf("\r\n");
     }
 }
 
+
+// In this function, the CUA sweeps memory range of increasing sizes.
+// One sweep consist of `N_REPEAT` repeat accesses over the entire range.
 void mem_sweep_two_cases (uint32_t num_counter, uint32_t *print_info) {
-    // LLC hit:  40 KB
+    // LLC hit:  320  KB
     // LLC miss: 2048 KB
     uint32_t EVAL_LEN = 2;
     uint32_t eval_array[] = {40960, 262144};
@@ -373,13 +387,16 @@ void mem_sweep_two_cases (uint32_t num_counter, uint32_t *print_info) {
         uint32_t counter_init[num_counter];
         uint32_t counter_final[num_counter];
 
+        // This define the size of the memory range accessed.
         a_len2 = eval_array[a_len];
-        for (uint32_t i=0; i<num_counter; i++)
-            counter_rst[i] = 0;
+        for (uint32_t i=0; i<num_counter; i++) {
+          counter_rst[i] = 0;
+        }
 
         uint32_t N_REPEAT = 100;
 
-        // Prime the cache.
+        // This is done to prime the cache, so that the cold misses in the first run
+        // affect our numbers.
         for (int a_idx = 0; a_idx < a_len2; a_idx+=JUMP_CUA) {
             #ifdef CUA_RD
             asm volatile (
@@ -399,10 +416,12 @@ void mem_sweep_two_cases (uint32_t num_counter, uint32_t *print_info) {
         // Reset all counters.
         write_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_rst, COUNTER_BUNDLE_SIZE);
 
+        // Set up before running the test.
         asm volatile("csrr %0, 0xb04" : "=r" (curr_miss) : );
         read_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_init, COUNTER_BUNDLE_SIZE);
         curr_cycle = read_csr(cycle);
 
+        // This is the actual sweep that will be counted in the results.
         for (int a_repeat = 0; a_repeat < N_REPEAT; a_repeat++){
             for (int a_idx = 0; a_idx < a_len2; a_idx+=JUMP_CUA) {
             #ifdef CUA_RD
@@ -422,6 +441,7 @@ void mem_sweep_two_cases (uint32_t num_counter, uint32_t *print_info) {
             }
         }
 
+        // Collect post-test results.
         end_cycle = read_csr(cycle) - curr_cycle;
         read_32b_regs(COUNTER_BASE_ADDR, num_counter, counter_final, COUNTER_BUNDLE_SIZE);
         asm volatile("csrr %0, 0xb04" : "=r" (end_miss) : );
@@ -442,6 +462,7 @@ void mem_sweep_two_cases (uint32_t num_counter, uint32_t *print_info) {
             counter_data[i] = (counter_final[i]&0x7FFFFFFF)-(counter_init[i]&0x7FFFFFFF); 
         }
 
+        // counter_data = counter_final - counter_init
         for (uint32_t i=0; i<num_counter; i++) {
             if (print_info[i] == -1) {
                 printf("%d:%d", i, counter_data[i]);
@@ -456,7 +477,6 @@ void mem_sweep_two_cases (uint32_t num_counter, uint32_t *print_info) {
             if (i != num_counter-1) printf(",");
             else                    printf(".");
         }
-
         printf("\r\n");
     }
 }
