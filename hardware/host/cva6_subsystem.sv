@@ -457,8 +457,8 @@ module cva6_subsystem
     .AXI_DATA_WIDTH     ( AXI_DATA_WIDTH           ),
     .AXI_ID_WIDTH       ( ariane_soc::IdWidthSlave ),
     .AXI_USER_WIDTH     ( AXI_USER_WIDTH           ),
-    .AXI_MAX_READ_TXNS  ( 1                        ),
-    .AXI_MAX_WRITE_TXNS ( 1                        ),
+    .AXI_MAX_READ_TXNS  ( 8                        ),
+    .AXI_MAX_WRITE_TXNS ( 8                        ),
     .RISCV_WORD_WIDTH   ( 64                       )
   ) i_axi_riscv_atomicsl2 (
     .clk_i,
@@ -516,8 +516,8 @@ module cva6_subsystem
     .AXI_DATA_WIDTH     ( AXI_DATA_WIDTH           ),
     .AXI_ID_WIDTH       ( ariane_soc::IdWidthSlave ),
     .AXI_USER_WIDTH     ( AXI_USER_WIDTH           ),
-    .AXI_MAX_READ_TXNS  ( 1                        ),
-    .AXI_MAX_WRITE_TXNS ( 1                        ),
+    .AXI_MAX_READ_TXNS  ( 8                        ),
+    .AXI_MAX_WRITE_TXNS ( 8                        ),
     .RISCV_WORD_WIDTH   ( 64                       )
   ) i_axi_riscv_atomicsl3 (
     .clk_i,
@@ -890,8 +890,8 @@ module cva6_subsystem
     .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
     .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
-    .CAM_DEPTH          (  3                          ),
-    .FIFO_DEPTH         (  3                          )
+    .CAM_DEPTH          (  8                          ),
+    .FIFO_DEPTH         (  8                          )
   ) i_spu_core_0_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
@@ -915,8 +915,8 @@ module cva6_subsystem
     .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
     .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
-    .CAM_DEPTH          (  3                          ),
-    .FIFO_DEPTH         (  3                          )
+    .CAM_DEPTH          (  8                          ),
+    .FIFO_DEPTH         (  8                          )
   ) i_spu_core_1_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
@@ -940,8 +940,8 @@ module cva6_subsystem
     .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
     .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
-    .CAM_DEPTH          (  3                          ),
-    .FIFO_DEPTH         (  3                          )
+    .CAM_DEPTH          (  8                          ),
+    .FIFO_DEPTH         (  8                          )
   ) i_spu_core_2_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
@@ -965,8 +965,8 @@ module cva6_subsystem
     .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
     .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
-    .CAM_DEPTH          (  3                          ),
-    .FIFO_DEPTH         (  3                          )
+    .CAM_DEPTH          (  8                          ),
+    .FIFO_DEPTH         (  8                          )
   ) i_spu_core_3_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
