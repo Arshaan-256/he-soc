@@ -91,7 +91,7 @@
 #define LLC_WR_REQ_CORE_2   0x4F002F
 #define LLC_WR_REQ_CORE_3   0x5F002F
 // Write responses to Core X from LLC
-#define LLC_RD_RES          0x00004F
+#define LLC_WR_RES          0x00004F
 #define LLC_WR_RES_CORE_0   0x2F004F
 #define LLC_WR_RES_CORE_1   0x3F004F
 #define LLC_WR_RES_CORE_2   0x4F004F
