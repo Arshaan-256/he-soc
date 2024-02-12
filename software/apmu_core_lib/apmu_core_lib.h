@@ -16,6 +16,7 @@
 #define add_64u_32u(in1_l, in1_u, in2, out_l, out_u) {\
     asm volatile ("# out = in1 + in2"); \
     out_l = in1_l + in2; \
+    out_u = in1_u; \
     if (out_l < (unsigned) in1_l) \
         out_u = in1_u + 1; \
 }
