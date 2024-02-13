@@ -66,7 +66,8 @@
 // PMU Core Addresses
 #define ISPM_BASE_ADDR  0x10426000
 #define DSPM_BASE_ADDR  0x10427000
-
+#define DSPM_LENGTH     0x32768
+#define DSPM_END_ADDR   (DSPM_BASE_ADDR + DSPM_LENGTH)
 /// **********************************************************************
 /// PMU Event Defines for Event Selection Register
 /// **********************************************************************
