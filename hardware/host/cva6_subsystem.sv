@@ -890,8 +890,8 @@ module cva6_subsystem
     .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
     .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
-    .CAM_DEPTH          (  8                          ),
-    .FIFO_DEPTH         (  8                          )
+    .CAM_DEPTH          ( ariane_soc::CORE_SPU_CAM_DEPTH  ),
+    .FIFO_DEPTH         ( ariane_soc::CORE_SPU_FIFO_DEPTH )
   ) i_spu_core_0_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
@@ -915,8 +915,8 @@ module cva6_subsystem
     .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
     .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
-    .CAM_DEPTH          (  8                          ),
-    .FIFO_DEPTH         (  8                          )
+    .CAM_DEPTH          ( ariane_soc::CORE_SPU_CAM_DEPTH  ),
+    .FIFO_DEPTH         ( ariane_soc::CORE_SPU_FIFO_DEPTH )
   ) i_spu_core_1_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
@@ -940,8 +940,8 @@ module cva6_subsystem
     .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
     .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
-    .CAM_DEPTH          (  8                          ),
-    .FIFO_DEPTH         (  8                          )
+    .CAM_DEPTH          ( ariane_soc::CORE_SPU_CAM_DEPTH  ),
+    .FIFO_DEPTH         ( ariane_soc::CORE_SPU_FIFO_DEPTH )
   ) i_spu_core_2_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
@@ -965,8 +965,8 @@ module cva6_subsystem
     .addr_rule_t        ( ariane_soc::addr_map_rule_t ),
     .N_ADDR_RULES       ( N_ADDR_RULES                ),
     // FIFO and CAM Parameters
-    .CAM_DEPTH          (  8                          ),
-    .FIFO_DEPTH         (  8                          )
+    .CAM_DEPTH          ( ariane_soc::CORE_SPU_CAM_DEPTH  ),
+    .FIFO_DEPTH         ( ariane_soc::CORE_SPU_FIFO_DEPTH )
   ) i_spu_core_3_llc (
     .clk_i              ( clk_i                       ),
     .rst_ni             ( rst_ni                      ),
