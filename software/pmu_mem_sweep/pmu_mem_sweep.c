@@ -8,7 +8,7 @@
 /// The CUA will always miss in the L1 but after one run of the loop, it will never miss in the LLC.
 
 /// This define controls the number of non-CUA cores that are causing RD / WR contention.
-#define NUM_NON_CUA 0
+#define NUM_NON_CUA 3
 
 /// Only use these defines if you don't want interference.
 // #define RD_ONLY
@@ -20,21 +20,21 @@
 // #define STD_RD_ON_RD
 // #define STD_WR_ON_WR
 // #define STD_RD_ON_WR
-#define STD_WR_ON_RD
+// #define STD_WR_ON_RD
 
 /// RD with write Back with read contention
 // #define RD_WB_ON_RD
 /// RD with write Back with write contention
 // #define RD_WB_ON_WR
 /// WR without write Back with read contention
-// #define WR_NWB_ON_RD
+#define WR_NWB_ON_RD
 /// WR without write Back with write contention
 // #define WR_NWB_ON_WR
 
 // Array size: 320 kB   (Non-CUA LLC Hits)
-#define LEN_NONCUA   40960
+// #define LEN_NONCUA   40960
 // Array size: 2048 kB  (Non-CUA LLC Misses)
-// #define LEN_NONCUA   262144
+#define LEN_NONCUA   262144
 
 /// Core jumps over 8 64-bit elements every iteration.
 /// It skips 64B (or one cacheline) per iteration. 
@@ -141,25 +141,25 @@ int main(int argc, char const *argv[]) {
     printf("************\r\n");
 
     #if defined(RD_ONLY)
-      printf("Only read in CUA, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Only read in CUA, NonCUA_Jump=%d NonCUA_Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(WR_ONLY)
-      printf("Only write in CUA, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Only write in CUA, NonCUA_Jump=%d NonCUA_Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(STD_RD_ON_RD)
-      printf("Standard Read on read contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Standard Read on read contention, NonCUA_Jump=%d NonCUA_Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(STD_WR_ON_WR)
-      printf("Standard Write on write contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Standard Write on write contention, NonCUA_Jump=%d NonCUA_Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(STD_RD_ON_WR)
-      printf("Standard Read on write contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Standard Read on write contention, NonCUA_Jump=%d NonCUA_Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(STD_WR_ON_RD)
-      printf("Standard Write on read contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Standard Write on read contention, NonCUA_Jump=%d NonCUA_Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(RD_WB_ON_RD)
-      printf("Read miss (with writeback) on read contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Read miss (with writeback) on read contention, NonCUA_Jump=%d NonCUA_Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(RD_WB_ON_WR)
-      printf("Read miss (with writeback) on write contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Read miss (with writeback) on write contention, NonCUA_Jump=%d NonCUA_Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(WR_NWB_ON_RD)
-      printf("Write miss (without writeback) on read contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Write miss (without writeback) on read contention, NonCUA_Jump=%d NonCUA_Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #elif defined(WR_NWB_ON_WR)
-      printf("Write miss (without writeback) on write contention, Jump=%d Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
+      printf("Write miss (without writeback) on write contention, NonCUA_Jump=%d NonCUA_Len=%d\r\n", JUMP_CUA, LEN_NONCUA);
     #endif
     
     uint32_t num_counter = 26;
@@ -188,8 +188,8 @@ int main(int argc, char const *argv[]) {
                             MEM_WR_REQ_CORE_0,    // 17
                             LLC_RD_RES_CORE_0,    // 18
                             LLC_WR_RES_CORE_0,    // 19
-                            LLC_RD_RES_CORE_1,    // 20
-                            LLC_WR_RES_CORE_1,    // 21  
+                            MEM_RD_RES_CORE_0,    // 20
+                            MEM_WR_RES_CORE_0,    // 21  
                             LLC_RD_RES_CORE_2,    // 22 
                             LLC_WR_RES_CORE_2,    // 23  
                             LLC_RD_RES_CORE_3,    // 24  
@@ -239,8 +239,8 @@ int main(int argc, char const *argv[]) {
                              -1,-1,-1,-1,
                              // EXTRA INFO
                              -1,-1,0,1,
-                              4, 6,8,10,
-                             12,14};
+                              16,17,8,10,
+                              12,14};
 
     write_32b_regs(EVENT_SEL_BASE_ADDR, num_counter, event_sel, COUNTER_BUNDLE_SIZE);
     write_32b_regs(EVENT_INFO_BASE_ADDR, num_counter, event_info, COUNTER_BUNDLE_SIZE);
@@ -495,12 +495,7 @@ void mem_sweep_two_cases (uint32_t num_counter, uint32_t *print_info) {
   for (uint32_t a_len = 0; a_len < EVAL_LEN; a_len++) { 
     // This defines the size of the memory range accessed.
     a_len2 = eval_array[a_len];
-    for (uint32_t i=0; i<num_counter; i++) {
-      counter_rst[i] = 0;
-    }
-
-    uint32_t N_REPEAT = 100;
-
+  
     // This is done to prime the cache, so that the cold misses in the first run
     // don't affect our numbers.
     for (int a_idx = 0; a_idx < a_len2; a_idx+=JUMP_CUA) {
