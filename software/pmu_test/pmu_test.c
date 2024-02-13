@@ -403,7 +403,7 @@ int main(int argc, char const *argv[]) {
     //   array[i] = my_rand(i*10);
     // }
 
-    Start PMU Timer by writing to PMU Period Register.
+    // Start PMU Timer by writing to PMU Period Register.
     write_32b(PERIOD_ADDR, 0xFFFFFFFF);
     write_32b(PERIOD_ADDR + 0x4, 0xFFFFFFFF);
 
