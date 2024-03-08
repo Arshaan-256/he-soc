@@ -18,3 +18,4 @@ build:
 clean:
 	rm -rf *.txt
 	rm -rf *.dump
+	rm -rf *.s
