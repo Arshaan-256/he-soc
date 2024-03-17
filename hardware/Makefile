@@ -22,7 +22,7 @@ verilator      ?= verilator
 target-options ?=
 # additional defines
 	# Adding support for the STD_CacheSubsystem used by CVA6, which is Write-back.
-	ifndef wb_cva6_l1
+	ifndef cva6_wb_l1
 		defines        ?= WT_DCACHE
 	endif
 
