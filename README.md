@@ -1,4 +1,4 @@
-# AlSaqr SoC
+# AlSaqr SoC -- Four Cores with Centralized PMU
 
 This repository contains the hardware files needed to build the AlSaqr-SoC. The architecture of the SoC is briefly described in the block diagram below.
 
