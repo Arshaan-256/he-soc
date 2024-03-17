@@ -20,8 +20,12 @@ questa_version ?= -10.7b
 verilator      ?= verilator
 # traget option
 target-options ?=
-# additional definess
-defines        ?= WT_DCACHE
+# additional defines
+	# Adding support for the STD_CacheSubsystem used by CVA6, which is Write-back.
+	ifndef wb_cva6_l1
+		defines        ?= WT_DCACHE
+	endif
+
 # test name for torture runs (binary name)
 test-location  ?= output/test
 # set to either nothing or -log
