@@ -1,5 +1,10 @@
 # AlSaqr SoC -- Four Cores with Centralized PMU
 
+* **Repository Versions (Tags)**
+  * CVA6: v5.0.0
+  * APMU: v1.5.0
+  * SPU:  v1.1.0 
+
 This repository contains the hardware files needed to build the AlSaqr-SoC. The architecture of the SoC is briefly described in the block diagram below.
 
 ![alt text](./hardware/docs/RTL.jpg)
