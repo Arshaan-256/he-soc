@@ -30,7 +30,7 @@
 	make clean all
 	```
 
-7. ## Running simulation
+## 7a. Running simulation
 	1. Go into the CVA6 folder at `he-soc/cva6` and run the following commands:
 		```
   		git submodule update --init --recursive
@@ -75,7 +75,7 @@
    		**Note:** Do not confuse it with the one created in the `he-soc/hardware/fpga/alsaqr/tcl/generated` folder when running the synthesis command: `make simple-padframe=1 scripts-bender-fpga-ddr exclude-cluster=1`. I have not faced any such errors with Vivado.
 
 
-9. **Testing on the board**
+## 7b. Testing on the board
 
 	To generate the bitstream go to the `hardware` folder and run the following commands:
 	```
@@ -113,7 +113,7 @@
 	      ![image](https://github.com/Arshaan-256/he-soc/assets/30975751/4bce108c-687c-4f2e-bc60-0d56c9402f82)
 	     This should fix the issue. You can run `Generate Bitstream` again.
 
-10. **`gdb` Commands**
+8. **`gdb` Commands**
 	1. Connect to a new target: `target remote:3333` OR `target extended-remote:3333`.
  	2. To mask the SIGINT signal: `handle signal SIGINT noprint`, it works only with `extended-remote`.
 
