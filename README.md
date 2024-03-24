@@ -32,6 +32,11 @@
 
 ## 7a. Running simulation
 
+
+
+
+
+
 	1. Go into the CVA6 folder at `he-soc/cva6` and run the following commands:
 		```
   		git submodule update --init --recursive
