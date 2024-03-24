@@ -55,7 +55,7 @@
 	**Debugging**
    	1. **Error** `Failed to open design unit file "./he-soc/hardware/tb/vip/hyperflash_model/s26ks512s.v" in read mode.`
 
-   	   Make sure you have imported the verification IPs (VIPs) to the correct location (Step 4).
+   	   Make sure you have imported the verification IPs (VIPs) to the correct location (Step 4). Sometimes this error persists despite this but in that case, the simulation still runs.
    	   
 	2. **Error** `pmc_op_e`-like defines not found for **Advanced Performance Monitoring Unit**
     
@@ -116,3 +116,6 @@
 10. **`gdb` Commands**
 	1. Connect to a new target: `target remote:3333` OR `target extended-remote:3333`.
  	2. To mask the SIGINT signal: `handle signal SIGINT noprint`, it works only with `extended-remote`.
+
+
+# 1.1 Errors?
