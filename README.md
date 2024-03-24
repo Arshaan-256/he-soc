@@ -32,11 +32,6 @@
 
 ## 7a. Running simulation
 
-
-
-
-
-
 	1. Go into the CVA6 folder at `he-soc/cva6` and run the following commands:
 		```
   		git submodule update --init --recursive
@@ -79,7 +74,6 @@
     		My current fix is to first run the command that generates the Tcl script that QuestaSim eats: `make scripts_vip preload=1 localjtag=1`. This command creates a `compile.tcl` in the `he-soc/hardware` folder. Then open that file and remove the entire `if` block where they add the base `ibex_core`. Only keep the `ibex_pmu_core` block. There might be a smarter way to configure `bender` but I haven't had the time to do so. 
    
    		**Note:** Do not confuse it with the one created in the `he-soc/hardware/fpga/alsaqr/tcl/generated` folder when running the synthesis command: `make simple-padframe=1 scripts-bender-fpga-ddr exclude-cluster=1`. I have not faced any such errors with Vivado.
-
 
 ## 7b. Testing on the board
 
