@@ -56,6 +56,24 @@
    	1. **Error** `Failed to open design unit file "./he-soc/hardware/tb/vip/hyperflash_model/s26ks512s.v" in read mode.`
 
    	   Make sure you have imported the verification IPs (VIPs) to the correct location (Step 4).
+   	   
+	2. **Error** `pmc_op_e`-like defines not found for **Advanced Performance Monitoring Unit**
+    
+	    This is the RISC-V implementation of the APMU design specification.
+
+            Yeah, this is a pretty annoying bug but it exists only for **SIMULATION**. The problem is that there are two copies of most Ibex-related modules:
+		1. One is due to the APMU, as we are using a modified version of the Ibex core for the APMU core, which is the `alsaqr-dev` branch maintained by the `u/Arshaan-256` Git account. This module is added a dependency in the `Bender.yml` file of the APMU. The top core module in this branch of the repository is called `ibex_pmu_core`.
+    
+      		Example: `ibex_pmu: { git: "git@github.com:Arshaan-256/ibex.git", version: 0.4.2 }`
+
+   		2. The second one is because of the base `he-soc` repo which also clones the standard Ibex GitHub repository using `bender`. This one is maintained by `u/lowRISC`. The top module here is `ibex_core`. 
+   
+  		The top modules have different names but the internal Ibex modules still share the same names. This causes problems with QuestaSim as it ends up focusing on the Ibex files from `u/lowRISC`, which do not have the necessary defines and signals that the APMU is expecting. Causing errors like no define found for `pmc_op_e`, etc.
+
+    		My current fix is to first run the command that generates the Tcl script that QuestaSim eats: `make scripts_vip preload=1 localjtag=1`. This command creates a `compile.tcl` in the `he-soc/hardware` folder. Then open that file and remove the entire `if` block where they add the base `ibex_core`. Only keep the `ibex_pmu_core` block. There might be a smarter way to configure `bender` but I haven't had the time to do so. 
+   
+   		**Note:** Do not confuse it with the one created in the `he-soc/hardware/fpga/alsaqr/tcl/generated` folder when running the synthesis command: `make simple-padframe=1 scripts-bender-fpga-ddr exclude-cluster=1`. I have not faced any such errors with Vivado.
+
 
 9. **Testing on the board**
 
