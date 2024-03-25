@@ -56,7 +56,7 @@
 
 	Now, you can run the simulation.
 
-**Debugging**
+### **Debugging**
 	
 1. **Error** `Failed to open design unit file "./he-soc/hardware/tb/vip/hyperflash_model/s26ks512s.v" in read mode.`
 
@@ -103,7 +103,7 @@ Once done, you need to run the following:
 	make clean run
 	
 	
-**Debugging**
+### **Debugging**
 1. **Error** It is possible that you get an error: `vivado-2018.2 not found. No such command.` 
 	   
     
