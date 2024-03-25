@@ -123,3 +123,4 @@ Once done, you need to run the following:
 
 
 # 1.1 Errors?
+Steps 7.a and 7.b have sections on debugging, focussing on errors that I observed during simulation and synthesis, respectively.
