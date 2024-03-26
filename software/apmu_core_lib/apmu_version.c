@@ -46,8 +46,6 @@ void for_reg_main () {
     // This is the target read_latency that the PMU should maintain for CUA.
     volatile int *init = (int*)(DSPM_BASE_ADDR + 0x80);
     volatile int unsigned target_avg_lat = *init;
-    init = (int*)(DSPM_BASE_ADDR + 0x84);
-    volatile int unsigned target_n_read = *init;
 
     // Every halt-resume operation is logged into the DSPM with a timestamp.
     int dspm_ptr = DSPM_BASE_ADDR + 0x100;
@@ -250,8 +248,6 @@ void used_for_testing_wt () {
     // This is the target read_latency that the PMU should maintain for CUA.
     volatile int *init = (int*)(DSPM_BASE_ADDR + 0x80);
     volatile int unsigned target_avg_lat = *init;
-    init = (int*)(DSPM_BASE_ADDR + 0x84);
-    volatile int unsigned target_n_read = *init;
 
     // Every halt-resume operation is logged into the DSPM with a timestamp.
     int dspm_ptr = DSPM_BASE_ADDR + 0x1300;
@@ -382,8 +378,6 @@ void used_for_testing_wb () {
     // This is the target read_latency that the PMU should maintain for CUA.
     volatile int *init = (int*)(DSPM_BASE_ADDR + 0x80);
     volatile int unsigned target_avg_lat = *init;
-    init = (int*)(DSPM_BASE_ADDR + 0x84);
-    volatile int unsigned target_n_read = *init;
 
     // Every halt-resume operation is logged into the DSPM with a timestamp.
     int dspm_ptr = DSPM_BASE_ADDR + 0x1300;
