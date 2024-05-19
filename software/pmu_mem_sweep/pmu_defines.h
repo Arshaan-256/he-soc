@@ -7,8 +7,8 @@
 /// The memory map of the PMU is as follows:
 ///     /************************************\
 ///     | Initial Budget Register            |
-///     | Event Info Configuration Register  |          Not yet 4kB aligned
-///     | Event Selection Register           |              Counter Bundle
+///     | Event Info Configuration Register  |          Counter Bundle
+///     | Event Selection Register           |              
 ///     | Counter                            |
 ///     \************************************/
 ///                     .
@@ -16,19 +16,19 @@
 ///                     .
 ///     /************************************\
 ///     | Initial Budget Register            |
-///     | Event Info Configuration Register  |          Not yet 4kB aligned          
-///     | Event Selection Register           |              Counter Bundle
+///     | Event Info Configuration Register  |          Counter Bundle
+///     | Event Selection Register           |              
 ///     | Counter                            |
 ///     \************************************/
 ///     /************************************\
 ///     | Initial Budget Register            |
-///     | Event Info Configuration Register  |          Not yet 4kB aligned
-///     | Event Selection Register           |              Counter Bundle
+///     | Event Info Configuration Register  |          Counter Bundle
+///     | Event Selection Register           |              
 ///     | Counter                            |
 ///     \************************************/
 ///     /************************************\
-///     | MemGuard Period Register           |          Not yet 4kB aligned
-///     | PMU Timer                          |              PMU Bundle
+///     | MemGuard Period Register           |          PMU Bundle
+///     | PMU Timer                          |              
 ///     \************************************/
 /// Each block is a separate 4kB-aligned page.
 /// The PMU Bundle includes the PMU Timer and the MemGuard Period Register.
@@ -136,5 +136,7 @@
 /// **********************************************************************
 /// Note: The following define only works if the response (X_RES_X) events are selected
 //        using the corresponding Event Select Register.
-#define ADD_RESP_LAT    0x8001E0
-#define OVERFLOW_EN     0x1000000
+#define ADD_RESP_LAT   0x8001E0
+// Only count those accesses that are targetting memory subsystem (LLC, main memory).
+#define CNT_MEM_ONLY   0x808E10
+#define OVERFLOW_EN    0x1000000

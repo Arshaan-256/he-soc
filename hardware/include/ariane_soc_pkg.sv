@@ -185,4 +185,7 @@ package ariane_soc;
     SPU_Memory = 0
   } spu_masters_t;
 
+  localparam CORE_SPU_CAM_DEPTH  = 8;
+  localparam CORE_SPU_FIFO_DEPTH = 8;
+
 endpackage
