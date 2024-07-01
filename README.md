@@ -118,8 +118,8 @@ Once done, you need to run the following:
      This should fix the issue. You can run `Generate Bitstream` again.
 
 8. **`gdb` Commands**
-1. Connect to a new target: `target remote:3333` OR `target extended-remote:3333`.
-2. To mask the SIGINT signal: `handle signal SIGINT noprint`, it works only with `extended-remote`.
+    1. Connect to a new target: `target remote:3333` OR `target extended-remote:3333`.
+    2. To mask the SIGINT signal: `handle signal SIGINT noprint`, it works only with `extended-remote`.
 
 
 # 1.1 Errors?
