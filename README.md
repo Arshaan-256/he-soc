@@ -120,7 +120,6 @@ Once done, you need to run the following:
 3. **Error** `Failed to spawn child process. Too many open files (os error 24)` when running `make init`.
    1. To check what the current session's file descriptor limit is, run `ulimit -n`.
    2. Increase it, by running `ulimit -n 4096`.
-   3. 
 
 ## 8.**`gdb` Commands**
 1. Connect to a new target: `target remote:3333` OR `target extended-remote:3333`.
