@@ -117,9 +117,9 @@ Once done, you need to run the following:
       ![image](https://github.com/Arshaan-256/he-soc/assets/30975751/4bce108c-687c-4f2e-bc60-0d56c9402f82)
      This should fix the issue. You can run `Generate Bitstream` again.
 
-8. **`gdb` Commands**
-    1. Connect to a new target: `target remote:3333` OR `target extended-remote:3333`.
-    2. To mask the SIGINT signal: `handle signal SIGINT noprint`, it works only with `extended-remote`.
+## 8.**`gdb` Commands**
+1. Connect to a new target: `target remote:3333` OR `target extended-remote:3333`.
+2. To mask the SIGINT signal: `handle signal SIGINT noprint`, it works only with `extended-remote`.
 
 
 # 1.1 Errors?
