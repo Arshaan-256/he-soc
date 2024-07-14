@@ -21,10 +21,10 @@ dependencies:
   axi: { git: "https://github.com/pulp-platform/axi.git", version: "0.29.1" }
   # axi_llc: { git: "https://github.com/AlSaqr-platform/axi_llc.git", rev: "29fd76fb438c91c692108c1f93ab221931653c5d" }
   # APMU_BLOCK
-  ibex_pmu: { git: "git@github.com:Arshaan-256/ibex.git", version: "0.4.2" }
+  ibex_pmu: { git: "git@github.com:Arshaan-256/ibex.git", version: "1.0.0" }
   axi_llc: { git: "git@github.com:Arshaan-256/axi_llc.git", rev: "master" }
   spu: { git: "git@github.com:Arshaan-256/spu.git", version: "1.0.9" }
-  pmu_v1.0: { git: "git@github.com:Arshaan-256/pmu_v1.0.git", version: "1.5.0" }
+  pmu_v1.0: { git: "git@github.com:Arshaan-256/pmu_v1.0.git", version: "1.5.2" }
   riscv-dbg: { git: "git@github.com:Arshaan-256/riscv-dbg.git", version: "0.0.4" }
   # APMU_BLOCK
   fpnew: { git: "https://github.com/pulp-platform/fpnew.git", version: 0.6.5 }
