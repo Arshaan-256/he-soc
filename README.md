@@ -20,6 +20,7 @@
 
 5. Build the RTL  by running the following commands. Make sure, for simulation, to add the `localjtag=1` and `preload=1` flag to the `make scripts_vip` command.
 	```
+ 	cd hardware
 	make update
 	make scripts_vip preload=1 localjtag=1
 	```
